@@ -4,9 +4,12 @@
 #include <sst/core/component.h>
 #include <sst/core/link.h>
 #include <sst/core/rng/marsaglia.h>
+#include <vector>
+using std::vector;
+
 
 namespace SST {
-namespace XTSimGenerator {
+namespace XTSimGeneratorSpace {
 
 class XTSimGenerator : public SST::Component {
 public:
@@ -56,15 +59,15 @@ public:
 
 private:
     // Event handler, called when an event is received on our link
-    void sendEvent();
+    // void sendEvent();
 
     // Clock handler, called on each clock cycle
     virtual bool clockTic(SST::Cycle_t);
 
     // Parameters
-    int64_t eventsToSend;
-    int eventSize;
-    bool lastEventReceived;
+    vector< curTrace;
+    // int eventSize;
+    // bool lastEventReceived;
 
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;
@@ -72,7 +75,7 @@ private:
     // Links
     SST::Link* link;
 };
-} // namespace XTSimGenerator
+} // namespace XTSimGeneratorSpace
 } // namespace SST
 
 
