@@ -37,7 +37,7 @@
 
 
 namespace SST {
-namespace xtsim {
+namespace XTsim {
 
 
 // Components inherit from SST::Component
