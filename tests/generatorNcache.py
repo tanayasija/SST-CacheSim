@@ -16,7 +16,7 @@ generator.addParams(generatorParams)
 
 cacheParams = {
         "blockSize" : 0,    # Required parameter, error if not provided
-        "cacheSize" : "/Users/admin/Desktop/pp/SST/sst-elements/src/sst/elements/SST-CacheSim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided,
+        # "cacheSize" : "/Users/admin/Desktop/pp/SST/sst-elements/src/sst/elements/SST-CacheSim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided,
         # "associativity" : 
 }
 cache.addParams(cacheParams)
