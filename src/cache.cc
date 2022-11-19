@@ -18,9 +18,7 @@
 // for ALL SST implementation files
 #include "sst_config.h"
 
-#include "cache.h"
-#include "basicEvent.h"
-
+#include <sst/elements/xtsim/include/cache.h>
 
 using namespace SST;
 using namespace SST::XTsim;
@@ -43,22 +41,26 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
 
     // Get parameter from the Python input
     bool found;
-    eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
-
-    // If parameter wasn't found, end the simulation with exit code -1.
-    // Tell the user how to fix the error (set 'eventsToSend' parameter in the input) 
-    // and which component generated the error (getName())
-    if (!found) {
-        out->fatal(CALL_INFO, -1, "Error in %s: the input did not specify 'eventsToSend' parameter\n", getName().c_str());
-    }
+    blockSize = params.find<size_t>("blockSize", 0, found);
+    cacheSize = params.find<size_t>("cacheSize", 0, found);
+    associativity = params.find<size_t>("associativity", 0, found);
+    size_t policy = params.find<size_t>("replacementPolicy", 0, found);
+    switch(policy) {
+        case 0:
+            rpolicy = ReplacementPolicy_t::RR;
+            break;
+        case 1:
+            rpolicy = ReplacementPolicy_t::LRU;
+            break;
+        case 2:
+            rpolicy = ReplacementPolicy_t::MRU;
+            break;
+    } 
+    protocol = params.find<size_t>("cacheSize", 0, found);
 
     // This parameter controls how big the messages are
     // If the user didn't set it, have the parameter default to 16 (bytes)
     eventSize = params.find<int64_t>("eventSize", 16);
-
-    // Tell the simulation not to end until we're ready
-    registerAsPrimaryComponent();
-    primaryComponentDoNotEndSim();
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
@@ -67,12 +69,6 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
     sst_assert(link, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
-
-    //set our clock. The simulator will call 'clockTic' at a 1GHz frequency
-    registerClock("1GHz", new Clock::Handler<example0>(this, &example0::clockTic));
-
-    // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
-    lastEventReceived = false;
 }
 
 
@@ -113,45 +109,4 @@ void cache::handleEvent(SST::Event *ev)
     } else {
         out->fatal(CALL_INFO, -1, "Error! Bad Event Type received by %s!\n", getName().c_str());
     }
-}
-
-
-/* 
- * On each clock cycle we will send an event to our neighbor until we've sent our last event
- * Then we will check for the exit condition and notify the simulator when the simulation is done
- */
-bool cache::clockTic( Cycle_t cycleCount)
-{
-    // Send an event if we need to 
-    if (eventsToSend > 0) {
-        basicEvent *event = new basicEvent();
-        
-        // Create a dummy payload with eventSize bytes
-        for (int i = 0; i < eventSize; i++) {
-            event->payload.push_back(1);
-        }
-
-        // This is the last event we'll send
-        if (eventsToSend == 1) {
-            event->last = true;
-        }
-        
-        eventsToSend--;
-
-        // Send the event
-        link->send(event);
-    }
-
-    // Check if the exit conditions are met
-    if (eventsToSend == 0 && lastEventReceived == true) {
-        
-        // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
-        primaryComponentOKToEndSim(); 
-
-        // Retrun true to indicate that this clock handler can be disabled
-        return true;
-    }
-
-    // Return false to indicate the clock handler should not be disabled
-    return false;
 }

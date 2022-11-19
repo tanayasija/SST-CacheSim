@@ -34,11 +34,36 @@
 #include <sst/core/component.h>
 #include <sst/core/link.h>
 #include <sst/core/rng/marsaglia.h>
+#include <sst/elements/xtsim/include/event.h>
 
 
 namespace SST {
 namespace XTsim {
 
+typedef enum class CacheState_t{
+	M;
+    E;
+    S;
+    I;
+} CacheState_t;
+
+typedef enum class CoherencyProtocol_t{
+	MSI;
+    MESI;
+} CoherencyProtocol_t;
+
+typedef enum class ReplacementPolicy_t {
+    RR;
+    LRU;
+    MRU;
+} ReplacementPolicy_t;
+
+typedef struct CacheLine_t {
+    size_t address;
+    bool dirty;
+    size_t timestamp;
+    CacheState_t state;
+} CacheLine_t;
 
 // Components inherit from SST::Component
 class cache : public SST::Component
@@ -64,14 +89,17 @@ public:
     // Document the parameters that this component accepts
     // { "parameter_name", "description", "default value or NULL if required" }
     SST_ELI_DOCUMENT_PARAMS(
-        { "eventsToSend", "How many events this component should send.", NULL},
-        { "eventSize",    "Payload size for each event, in bytes.", "16"}
+        { "blockSize", "Cache block size in bytes", "64"},
+        { "cacheSize", "Total Cache size in bytes", "16384"},
+        { "associativity", "Cache associativity", "4"},
+        { "replacementPolicy", "Replacement policy one of RR(0), LRU(1), MRU(2)", "1"}
+        { "protocol", "Cache coherency protocol one of MSI(0), MESI(1)", "0"}
     )
 
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"port",  "Link to another component", { "simpleElementExample.basicEvent", ""} }
+        {"port",  "Link to the generator for sending and receiving requests", { "XTsim.cacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -83,10 +111,10 @@ public:
 // Class members
 
     // Constructor. Components receive a unique ID and the set of parameters that were assigned in the Python input.
-    example0(SST::ComponentId_t id, SST::Params& params);
+    cache(SST::ComponentId_t id, SST::Params& params);
     
     // Destructor
-    ~example0();
+    ~cache();
 
 private:
     // Event handler, called when an event is received on our link
@@ -94,15 +122,20 @@ private:
     void handleBusOp(SST::Event *ev);
 
     // Parameters
-    int64_t eventsToSend;
-    int eventSize;
-    bool lastEventReceived;
+    size_t blockSize;
+    size_t cacheSize;
+    size_t associativity;
+    std::vector<std::vector<CacheLine_t>> cacheLines;
+    ReplacementPolicy_t rpolicy;
+    CoherencyProtocol_t protocol;
 
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;
 
     // Links
-    SST::Link* link;
+    SST::Link* cpulink;
+    SST::Link* buslink;
+    SST::Link* arblink;
 };
 
 } // namespace simpleElementExample

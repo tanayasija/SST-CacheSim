@@ -3,7 +3,7 @@
 namespace SST {
 namespace XTSimGeneratorSpace {
 
-typedef enum EVENT_TYPE{
+typedef enum class EVENT_TYPE{
 	READ = 0,
 	WRITE = 1,
 	EX_READ = 2
