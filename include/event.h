@@ -1,7 +1,7 @@
 #include <sst/core/event.h>
 
 namespace SST {
-namespace XTSimGeneratorSpace {
+namespace XTSim {
 
 typedef enum class EVENT_TYPE{
 	READ = 0,
@@ -29,7 +29,7 @@ public:
     }
 
     // Register this event as serializable
-    ImplementSerializable(SST::XTSimGeneratorSpace::CacheEvent);
+    ImplementSerializable(SST::XTSim::CacheEvent);
 };
 
 

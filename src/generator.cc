@@ -13,19 +13,17 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-
-// This include is ***REQUIRED*** 
+// This include is ***REQUIRED***
 // for ALL SST implementation files
 #include "sst_config.h"
 
 #include "basicEvent.h"
 #include "generator.h"
 
-
 using namespace SST;
-using namespace SST::XTSimGeneratorSpace;
+using namespace SST::XTSim;
 
-/* 
+/*
  * During construction the XTSimGenerator component should prepare for simulation
  * - Read parameters
  * - Configure link
@@ -33,22 +31,26 @@ using namespace SST::XTSimGeneratorSpace;
  * - Send event for every clock ticking
  * - Register statistics
  */
-XTSimGenerator::XTSimGenerator(ComponentId_t id, Params& params) : Component(id) {
+XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id) {
 
     // SST Output Object
-    // Initialize with 
+    // Initialize with
     // - no prefix ("")
     // - Verbose set to 1
     // - No mask
     // - Output to STDOUT (Output::STDOUT)
+
+    // read configuration
     out = new Output("", 1, 0, Output::STDOUT);
+    generatorID = params.find<size_t>("generatorID");
+    traceFilePath = params.find<string>("traceFilePath");
 
     // Get parameter from the Python input
     // bool found;
     // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
 
     // If parameter wasn't found, end the simulation with exit code -1.
-    // Tell the user how to fix the error (set 'eventsToSend' parameter in the input) 
+    // Tell the user how to fix the error (set 'eventsToSend' parameter in the input)
     // and which component generated the error (getName())
     // if (!found) {
     //     out->fatal(CALL_INFO, -1, "Error in %s: the input did not specify 'eventsToSend' parameter\n", getName().c_str());
@@ -70,8 +72,14 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params& params) : Component(id)
     // Failure usually means the user didn't connect the port in the input file
     sst_assert(link, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 
-    //set our clock. The simulator will call 'clockTic' at a 1GHz frequency
-    registerClock("1GHz", new Clock::Handler<XTSimGenerator>(this, &XTSimGenerator::clockTic));
+    // set our clock. The simulator will call 'clockTic' at a 1GHz frequency
+    // registerClock("1GHz", new Clock::Handler<XTSimGenerator>(this, &XTSimGenerator::clockTic));
+
+    // read all the events from file
+	readFromTrace();
+
+    // TODO: establish the link between corresponding cache
+	link = configureLink("port", new Event::Handler<XTSimGenerator>(this, &XTSimGenerator::sendEvent));
 
     // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
     // lastEventReceived = false;
@@ -80,16 +88,47 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params& params) : Component(id)
     // bytesReceived = registerStatistic<uint64_t>("EventSizeReceived");
 }
 
+void XTSimGenerator::readFromTrace() {
+    string line;
+	string leading = "threadId: " + std::to_string(generatorID);
+	std::ifstream infile(traceFilePath);
+    while (getline(infile, line)) {
+		// skip other processors' lines
+		if(line.rfind(leading, 0) == string::npos)
+			continue;
+        
+		// get the addr
+		size_t addrS = line.rfind(' ');
+		string hexAddr = line.substr(addrS + 1);
+		size_t addr;
+		std::stringstream ss;
+		ss << std::hex << hexAddr;
+		ss >> addr;
+		// if it's a read trace
+		if(line.find('R') != string::npos){
+			CacheEvent event(EVENT_TYPE::READ, addr);
+			eventList.push_back(event);
+		}else{ // a write trace
+			CacheEvent event(EVENT_TYPE::EX_READ, addr);
+			eventList.push_back(event);
+		}
+    }
+}
 
-/* 
+void XTSimGenerator::sendEvent(SST::Event *ev){
+
+}
+
+/*
  * On each clock cycle we will send an event to our neighbor until we've sent our last event
  * Then we will check for the exit condition and notify the simulator when the simulation is done
  */
+/*
 bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 {
-    // Send an event if we need to 
+    // Send an event if we need to
         basicEvent *event = new basicEvent();
-        
+
         // Use the RNG to pick a payload size between 1 and eventSize
         uint32_t size = (rng->generateNextUInt32() % eventSize) + 1;
         // Create a dummy payload with of size bytes
@@ -101,7 +140,7 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
         if (eventsToSend == 1) {
             event->last = true;
         }
-        
+
         eventsToSend--;
 
         // Send the event
@@ -110,9 +149,9 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 
     // Check if the exit conditions are met
     if (eventsToSend == 0 && lastEventReceived == true) {
-        
+
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
-        primaryComponentOKToEndSim(); 
+        primaryComponentOKToEndSim();
 
         // Retrun true to indicate that this clock handler should be disabled
         return true;
@@ -121,3 +160,4 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
     // Return false to indicate the clock handler should not be disabled
     return false;
 }
+*/
