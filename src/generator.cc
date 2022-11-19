@@ -73,13 +73,13 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
     sst_assert(link, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 
     // set our clock. The simulator will call 'clockTic' at a 1GHz frequency
-    // registerClock("1GHz", new Clock::Handler<XTSimGenerator>(this, &XTSimGenerator::clockTic));
+    registerClock("1GHz", new Clock::Handler<XTSimGenerator>(this, &XTSimGenerator::clockTic));
 
     // read all the events from file
 	readFromTrace();
 
-    // TODO: establish the link between corresponding cache
-	link = configureLink("port", new Event::Handler<XTSimGenerator>(this, &XTSimGenerator::sendEvent));
+    // establish the link between corresponding cache
+	link = configureLink("port");
 
     // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
     // lastEventReceived = false;
@@ -115,49 +115,25 @@ void XTSimGenerator::readFromTrace() {
     }
 }
 
-void XTSimGenerator::sendEvent(SST::Event *ev){
-
+void XTSimGenerator::sendEvent(){
+	CacheEvent* ev = new CacheEvent;
+	ev->addr = eventList[offset].addr;
+	ev->event_type = eventList[offset].event_type;
+	link->send(ev);
+	offset ++;
 }
 
 /*
  * On each clock cycle we will send an event to our neighbor until we've sent our last event
  * Then we will check for the exit condition and notify the simulator when the simulation is done
  */
-/*
+
 bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 {
-    // Send an event if we need to
-        basicEvent *event = new basicEvent();
-
-        // Use the RNG to pick a payload size between 1 and eventSize
-        uint32_t size = (rng->generateNextUInt32() % eventSize) + 1;
-        // Create a dummy payload with of size bytes
-        for (int i = 0; i < size; i++) {
-            event->payload.push_back(1);
-        }
-
-        // This is the last event we'll send
-        if (eventsToSend == 1) {
-            event->last = true;
-        }
-
-        eventsToSend--;
-
-        // Send the event
-        link->send(event);
-
-
-    // Check if the exit conditions are met
-    if (eventsToSend == 0 && lastEventReceived == true) {
-
-        // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
-        primaryComponentOKToEndSim();
-
-        // Retrun true to indicate that this clock handler should be disabled
-        return true;
-    }
-
-    // Return false to indicate the clock handler should not be disabled
-    return false;
+    if(!started){
+		started = true;
+		while(offset < eventList.size()){
+			sendEvent();
+		}
+	}
 }
-*/

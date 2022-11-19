@@ -65,15 +65,14 @@ private:
     // void sendEvent();
 
     // Clock handler, called on each clock cycle
-	// we don't need to handle clockTic event
-    // virtual bool clockTic(SST::Cycle_t);
+    virtual bool clockTic(SST::Cycle_t);
 	
 
 	// Read from trace file
 	void readFromTrace();
 
 	// event handler
-	void sendEvent(SST::Event *ev);
+	void sendEvent();
 
     // Parameters
     // vector< curTrace;
@@ -93,10 +92,12 @@ private:
 	vector<CacheEvent> eventList;
 
 	// event offset
-	size_t offset;
+	size_t offset = 0;
 
     // Links
     SST::Link* link;
+
+	bool started = false;
 };
 } // namespace XTSimGeneratorSpace
 } // namespace SST
