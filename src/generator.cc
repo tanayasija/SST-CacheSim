@@ -20,7 +20,7 @@
 #include "./include/generator.h"
 
 using namespace SST;
-using namespace SST::XTSim;
+using namespace SST::xtsim;
 
 /*
  * During construction the XTSimGenerator component should prepare for simulation

@@ -13,7 +13,7 @@ using std::string;
 
 
 namespace SST {
-namespace XTSim {
+namespace xtsim {
 
 class XTSimGenerator : public SST::Component {
 public:
@@ -27,7 +27,7 @@ public:
     // REGISTER THIS COMPONENT INTO THE ELEMENT LIBRARY
     SST_ELI_REGISTER_COMPONENT(
         XTSimGenerator,                       // Component class
-        "XTSimGenerator",         // Component library (for Python/library lookup)
+        "xtsim",         // Component library (for Python/library lookup)
         "XTSimGenerator",                     // Component name (for Python/library lookup)
         SST_ELI_ELEMENT_VERSION(1,0,0), // Version of the component (not related to SST version)
         "Simple Trace Generator Component",        // Description

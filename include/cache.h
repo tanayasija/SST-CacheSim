@@ -37,7 +37,7 @@
 
 
 namespace SST {
-namespace XTSim {
+namespace xtsim {
 
 enum class CacheState_t{
 	M,

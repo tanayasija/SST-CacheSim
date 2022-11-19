@@ -2,8 +2,8 @@
 import sst
 
 ### Create the components
-generator = sst.Component("c0", "XTSim.XTSimGenerator")
-cache = sst.Component("c1", "XTSim.Cache")
+cache = sst.Component("c1", "xtsim.cache")
+generator = sst.Component("c0", "xtsim.XTSimGenerator")
 
 ### Parameterize the components.
 # Run 'sst-info simpleElementExample.example0' at the command line 

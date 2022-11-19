@@ -22,7 +22,7 @@
 #include "./include/cache.h"
 
 using namespace SST;
-using namespace SST::XTSim;
+using namespace SST::xtsim;
 
 /* 
  * During construction the example component should prepare for simulation
