@@ -506,7 +506,7 @@ top_srcdir = @top_srcdir@
 compdir = $(pkglibdir)
 comp_LTLIBRARIES = libxtsim.la
 libxtsim_la_SOURCES = include/cache.h include/event.h \
-	include/gnerator.h src/cache.cc src/generator.cc \
+	include/generator.h src/cache.cc src/generator.cc \
 	$(am__append_1)
 deprecated_libxtsim_sources = 
 EXTRA_DIST = README tests/generatorNcache.py $(am__append_2)

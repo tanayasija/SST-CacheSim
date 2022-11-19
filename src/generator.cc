@@ -142,3 +142,11 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 	}
 	return true;
 }
+
+/*
+ * Destructor, clean up our output
+ */
+XTSimGenerator::~XTSimGenerator()
+{
+    delete out;
+}

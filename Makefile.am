@@ -10,7 +10,7 @@ comp_LTLIBRARIES = libxtsim.la
 libxtsim_la_SOURCES = \
 	include/cache.h \
     include/event.h \
-    include/gnerator.h \
+    include/generator.h \
     src/cache.cc \
     src/generator.cc
 

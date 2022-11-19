@@ -37,8 +37,8 @@ public:
     // Document the parameters that this component accepts
     // { "parameter_name", "description", "default value or NULL if required" }
     SST_ELI_DOCUMENT_PARAMS(
-        { "eventsToSend", "How many events this component should send.", NULL},
-        { "eventSize",    "Payload size for each event, in bytes.", "16"}
+        { "generatorID", "How many events this component should send.", NULL},
+        { "traceFilePath",    "Payload size for each event, in bytes.", NULL}
     )
 
     // Document the ports that this component has
