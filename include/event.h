@@ -1,9 +1,11 @@
+#ifndef _XTSim_EVENT_H_
+#define _XTSim_EVENT_H_
 #include <sst/core/event.h>
 
 namespace SST {
 namespace XTSim {
 
-typedef enum class EVENT_TYPE{
+enum class EVENT_TYPE{
 	READ = 0,
 	WRITE = 1,
 	EX_READ = 2
@@ -35,3 +37,5 @@ public:
 
 }
 }
+
+#endif

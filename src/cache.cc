@@ -18,11 +18,11 @@
 // for ALL SST implementation files
 #include "sst_config.h"
 
-#include <sst/elements/xtsim/include/event.h>
-#include <sst/elements/xtsim/include/cache.h>
+#include "./include/event.h"
+#include "./include/cache.h"
 
 using namespace SST;
-using namespace SST::XTsim;
+using namespace SST::XTSim;
 
 /* 
  * During construction the example component should prepare for simulation
@@ -69,11 +69,11 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
-    cpuLink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
+    cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
 
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
-    sst_assert(link, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
+    // sst_assert(cpuLink, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 }
 
 
@@ -96,7 +96,7 @@ void cache::handleProcessorOp(SST::Event *ev)
     
     if (event) {
         
-        cpuLink->send(ev);
+        cpulink->send(ev);
         // Receiver has the responsiblity for deleting events
         delete event;
 

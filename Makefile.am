@@ -22,7 +22,7 @@ endif
 
 EXTRA_DIST = \
     README \
-    tests/testsuite_default_simpleComponents.py
+    tests/generatorNcache.py
 
 deprecated_EXTRA_DIST =
 

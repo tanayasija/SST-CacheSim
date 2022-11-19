@@ -33,29 +33,28 @@
 
 #include <sst/core/component.h>
 #include <sst/core/link.h>
-#include <sst/core/rng/marsaglia.h>
-#include <sst/elements/xtsim/include/event.h>
+#include "event.h"
 
 
 namespace SST {
-namespace XTsim {
+namespace XTSim {
 
 enum class CacheState_t{
 	M,
     E,
     S,
-    I;
+    I
 };
 
 enum class CoherencyProtocol_t{ 
 	MSI,
-    MESI;
+    MESI
 };
 
 enum class ReplacementPolicy_t {
     RR,
     LRU,
-    MRU;
+    MRU
 };
 
 typedef struct CacheLine_t {
@@ -92,7 +91,7 @@ public:
         { "blockSize", "Cache block size in bytes", "64"},
         { "cacheSize", "Total Cache size in bytes", "16384"},
         { "associativity", "Cache associativity", "4"},
-        { "replacementPolicy", "Replacement policy one of RR(0), LRU(1), MRU(2)", "1"}
+        { "replacementPolicy", "Replacement policy one of RR(0), LRU(1), MRU(2)", "1"},
         { "protocol", "Cache coherency protocol one of MSI(0), MESI(1)", "0"}
     )
 

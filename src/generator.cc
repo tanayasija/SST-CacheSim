@@ -17,8 +17,7 @@
 // for ALL SST implementation files
 #include "sst_config.h"
 
-#include "basicEvent.h"
-#include "generator.h"
+#include "./include/generator.h"
 
 using namespace SST;
 using namespace SST::XTSim;
@@ -118,6 +117,8 @@ void XTSimGenerator::readFromTrace() {
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
 	std::cout<<"generator received event with addr:"<<cacheEvent->addr<<std::endl;
+	std::cout<<"now sending new event"<<std::endl;
+	sendEvent();
 }
 
 void XTSimGenerator::sendEvent(){
@@ -137,8 +138,7 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 {
     if(!started){
 		started = true;
-		while(offset < eventList.size()){
-			sendEvent();
-		}
+		sendEvent();
 	}
+	return true;
 }
