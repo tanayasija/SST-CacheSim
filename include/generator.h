@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <iostream>
 using std::vector;
 using std::string;
 
@@ -71,8 +72,10 @@ private:
 	// Read from trace file
 	void readFromTrace();
 
-	// event handler
 	void sendEvent();
+
+	// event handler
+	void handleEvent(SST::Event* ev);
 
     // Parameters
     // vector< curTrace;

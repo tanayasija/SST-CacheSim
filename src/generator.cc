@@ -66,7 +66,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
-    // link = configureLink("port", new Event::Handler<XTSimGenerator>(this, &example1::handleEvent));
+    link = configureLink("port", new Event::Handler<XTSimGenerator>(this, &XTSimGenerator::handleEvent));
 
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
@@ -79,7 +79,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 	readFromTrace();
 
     // establish the link between corresponding cache
-	link = configureLink("port");
+	// link = configureLink("port");
 
     // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
     // lastEventReceived = false;
@@ -113,6 +113,11 @@ void XTSimGenerator::readFromTrace() {
 			eventList.push_back(event);
 		}
     }
+}
+
+void XTSimGenerator::handleEvent(SST::Event* ev){
+	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
+	std::cout<<"generator received event with addr:"<<cacheEvent->addr<<std::endl;
 }
 
 void XTSimGenerator::sendEvent(){
