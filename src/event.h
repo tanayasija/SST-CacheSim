@@ -9,12 +9,12 @@ typedef enum EVENT_TYPE{
 	EX_READ = 2
 };
 
-class cacheEvent : public SST::Event
+class CacheEvent : public SST::Event
 {
 public:
     // Constructor
-	cacheEvent() : SST::Event() { }
-    cacheEvent(EVENT_TYPE et, uint64_t ad) : SST::Event(), event_type(et), addr(ad) { }
+	CacheEvent() : SST::Event() { }
+    CacheEvent(EVENT_TYPE et, uint64_t ad) : SST::Event(), event_type(et), addr(ad) { }
     
     // data members
 	EVENT_TYPE event_type;
@@ -29,7 +29,7 @@ public:
     }
 
     // Register this event as serializable
-    ImplementSerializable(SST::XTSimGeneratorSpace::cacheEvent);
+    ImplementSerializable(SST::XTSimGeneratorSpace::CacheEvent);
 };
 
 
