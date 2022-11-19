@@ -88,7 +88,6 @@ private:
 	// path of trace file
 	string traceFilePath;
 
-	// event list
 	vector<CacheEvent> eventList;
 
 	// event offset
@@ -101,6 +100,4 @@ private:
 };
 } // namespace XTSimGeneratorSpace
 } // namespace SST
-
-
 #endif

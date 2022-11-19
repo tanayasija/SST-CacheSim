@@ -40,23 +40,23 @@
 namespace SST {
 namespace XTsim {
 
-typedef enum class CacheState_t{
-	M;
-    E;
-    S;
+enum class CacheState_t{
+	M,
+    E,
+    S,
     I;
-} CacheState_t;
+};
 
-typedef enum class CoherencyProtocol_t{
-	MSI;
+enum class CoherencyProtocol_t{ 
+	MSI,
     MESI;
-} CoherencyProtocol_t;
+};
 
-typedef enum class ReplacementPolicy_t {
-    RR;
-    LRU;
+enum class ReplacementPolicy_t {
+    RR,
+    LRU,
     MRU;
-} ReplacementPolicy_t;
+};
 
 typedef struct CacheLine_t {
     size_t address;
@@ -127,7 +127,7 @@ private:
     size_t associativity;
     std::vector<std::vector<CacheLine_t>> cacheLines;
     ReplacementPolicy_t rpolicy;
-    CoherencyProtocol_t protocol;
+    CoherencyProtocol_t cprotocol;
 
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;
