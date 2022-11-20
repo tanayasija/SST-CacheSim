@@ -17,6 +17,11 @@ enum class EVENT_TYPE{
     EMPTY = 8 // Indicates an empty response
 };
 
+enum class ARB_EVENT_TYPE {
+	AC = 0, // acquire exclusive access to a bus
+	RL = 1  // release the exclusive access to the bus
+};
+
 class CacheEvent : public SST::Event
 {
 public:
@@ -35,10 +40,33 @@ public:
         Event::serialize_order(ser);
 		ser & event_type;
         ser & addr;
+		ser & pid;
     }
 
     // Register this event as serializable
     ImplementSerializable(SST::xtsim::CacheEvent);
+};
+
+class ArbEvent : public SST::Event {
+public:
+    // Constructor
+	ArbEvent() : SST::Event() { }
+    ArbEvent(ARB_EVENT_TYPE et, pid_t pid) : SST::Event(), event_type(et), pid(pid) { }
+    
+    // data members
+	ARB_EVENT_TYPE event_type;
+    pid_t pid;
+
+    // Events must provide a serialization function that serializes
+    // all data members of the event
+    void serialize_order(SST::Core::Serialization::serializer &ser)  override {
+        Event::serialize_order(ser);
+		ser & event_type;
+        ser & pid;
+    }
+
+    // Register this event as serializable
+    ImplementSerializable(SST::xtsim::ArbEvent);
 };
 
 }
