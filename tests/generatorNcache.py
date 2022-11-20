@@ -10,7 +10,7 @@ generator = sst.Component("c0", "xtsim.XTSimGenerator")
 # to see parameter documentation
 generatorParams = {
         "generatorID" : 0,    # Required parameter, error if not provided
-        "traceFilePath" : "/Users/admin/Desktop/pp/SST/sst-elements/src/sst/elements/SST-CacheSim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided
+        "traceFilePath" : "/Users/tanayasija/Documents/15-618/Project/sst-elements/src/sst/elements/xtsim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided
 }
 generator.addParams(generatorParams)
 
@@ -23,7 +23,7 @@ cache.addParams(cacheParams)
 
 ### Link the components via their 'port' ports
 link = sst.Link("component_link")
-link.connect( (generator, "port", "1ns"), (cache, "port", "1ns") )
+link.connect( (cache, "processorPort", "1ns"), (generator, "processorPort", "1ns"))
 
 ### Enable statistics
 # Limit the verbosity of statistics to any with a load level from 0-7

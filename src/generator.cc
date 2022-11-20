@@ -66,7 +66,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
-    link = configureLink("port", new Event::Handler<XTSimGenerator>(this, &XTSimGenerator::handleEvent));
+    link = configureLink("processorPort", new Event::Handler<XTSimGenerator>(this, &XTSimGenerator::handleEvent));
 
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
@@ -119,17 +119,18 @@ void XTSimGenerator::readFromTrace() {
 
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-	std::cout<<"generator received event with addr:"<<cacheEvent->addr<<std::endl;
-	std::cout<<"now sending new event"<<std::endl;
+	printf("generator received event with addr: %llx\n", cacheEvent->addr);
+	printf("now sending new event\n");
 	sendEvent();
 }
 
 void XTSimGenerator::sendEvent(){
 	printf("ready to send event. offset:%d\n", offset);
 	CacheEvent* ev = new CacheEvent;
+    printf("Addr %llx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
-	printf("sending%d\n", offset);
+	printf("sending %lu\n", offset);
 	link->send(ev);
 	offset ++;
 }

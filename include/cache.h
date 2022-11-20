@@ -98,7 +98,7 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"port",  "Link to the generator for sending and receiving requests", { "XTsim.cacheEvent", ""} }
+        {"processorPort",  "Link to the generator for sending and receiving requests", { "XTsim.cacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
