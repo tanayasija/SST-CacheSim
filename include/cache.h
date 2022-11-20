@@ -58,6 +58,7 @@ enum class ReplacementPolicy_t {
 };
 
 typedef struct CacheLine_t {
+    bool valid;
     size_t address;
     bool dirty;
     size_t timestamp;
@@ -123,13 +124,40 @@ private:
     void handleBusOp(SST::Event *ev);
     void handleArbOp(SST::Event *ev);
 
+    // Basic cache wrapper functions
+    void handleReadHit(CacheEvent* ev, CacheLine_t& line);
+    void handleWriteHit(CacheEvent* ev, CacheLine_t& line);
+    void handleReadMiss(CacheEvent* ev);
+    void handleWriteMiss(CacheEvent* ev);
+
+    // MSI Protocol specific functions
+    void handleReadHitMsi(CacheEvent* ev, CacheLine_t& line);
+    void handleWriteHitMsi(CacheEvent* ev, CacheLine_t& line);
+    void handleReadMissMsi(CacheEvent* ev);
+    void handleWriteMissMsi(CacheEvent* ev);
+
+    // MESI Protocol specific functions
+    void handleReadHitMesi(CacheEvent* ev, CacheLine_t& line);
+    void handleWriteHitMesi(CacheEvent* ev, CacheLine_t& line);
+    void handleReadMissMesi(CacheEvent* ev);
+    void handleWriteMissMesi(CacheEvent* ev);
+
+    // Bus and Arbiter Events
+    CacheEvent nextBusEvent;
+
     // Helper functions
+    bool lookupCache(size_t addr);
     void parseParams(Params& params);
+    size_t logFunc(size_t num);
 
     // Parameters
     size_t blockSize;
     size_t cacheSize;
     size_t associativity;
+    size_t nsets;
+    size_t nsbits; // Number of bits for determining set
+    size_t nbbits; // Number of bit for block size
+    size_t timestamp;
     std::vector<std::vector<CacheLine_t>> cacheLines;
     ReplacementPolicy_t rpolicy;
     CoherencyProtocol_t cprotocol;
