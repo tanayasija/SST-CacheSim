@@ -33,7 +33,7 @@ sst.setStatisticLoadLevel(7)
 sst.setStatisticOutput("sst.statOutputConsole") 
 
 # Enable statistics on both components
-sst.enableAllStatisticsForComponentType("simpleElementExample.example1")
+sst.enableAllStatisticsForComponentType("xtsim.XTSimGenerator")
 
 # Because the link latency is ~1ns and the components send one event
 # per cycle on a 1GHz clock, the simulation time should be just over eventsToSend ns

@@ -69,7 +69,7 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
-    cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
+    cpulink = configureLink("port", new Event::Handler<cache>(this, &cache::handleProcessorOp));
 
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file

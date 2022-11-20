@@ -15,6 +15,7 @@
 
 // This include is ***REQUIRED***
 // for ALL SST implementation files
+#include <stdio.h>
 #include "sst_config.h"
 
 #include "./include/generator.h"
@@ -88,6 +89,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 }
 
 void XTSimGenerator::readFromTrace() {
+	printf("[readFromTrace]\n");
     string line;
 	string leading = "threadId: " + std::to_string(generatorID);
 	std::ifstream infile(traceFilePath);
@@ -111,6 +113,7 @@ void XTSimGenerator::readFromTrace() {
 			CacheEvent event(EVENT_TYPE::EX_READ, addr);
 			eventList.push_back(event);
 		}
+		// printf("[readFromTrace] one event added\n");
     }
 }
 
@@ -122,9 +125,11 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
 }
 
 void XTSimGenerator::sendEvent(){
+	printf("ready to send event. offset:%d\n", offset);
 	CacheEvent* ev = new CacheEvent;
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
+	printf("sending%d\n", offset);
 	link->send(ev);
 	offset ++;
 }
