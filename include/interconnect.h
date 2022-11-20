@@ -15,7 +15,7 @@ using std::string;
 namespace SST {
 namespace xtsim {
 
-class XTSimGenerator : public SST::Component {
+class XTSimBus : public SST::Component {
 public:
 
 /*
@@ -26,25 +26,25 @@ public:
  */
     // REGISTER THIS COMPONENT INTO THE ELEMENT LIBRARY
     SST_ELI_REGISTER_COMPONENT(
-        XTSimGenerator,                       // Component class
+        XTSimBus,                       // Component class
         "xtsim",         // Component library (for Python/library lookup)
-        "XTSimGenerator",                     // Component name (for Python/library lookup)
+        "XTSimBus",                     // Component name (for Python/library lookup)
         SST_ELI_ELEMENT_VERSION(1,0,0), // Version of the component (not related to SST version)
-        "Simple Trace Generator Component",        // Description
+        "Simple Bus Interconnect Component",        // Description
         COMPONENT_CATEGORY_UNCATEGORIZED    // Category
     )
 
     // Document the parameters that this component accepts
     // { "parameter_name", "description", "default value or NULL if required" }
-    SST_ELI_DOCUMENT_PARAMS(
-        { "generatorID", "How many events this component should send.", NULL},
-        { "traceFilePath",    "Payload size for each event, in bytes.", NULL}
-    )
+    // SST_ELI_DOCUMENT_PARAMS(
+    //     { "generatorID", "How many events this component should send.", NULL},
+    //     { "traceFilePath",    "Payload size for each event, in bytes.", NULL}
+    // )
 
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"port",  "Link to another component", { "xtsim.CacheEvent", ""} }
+        {"arbitrationPort",  "Link to another component", { "xtsim.CacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -56,51 +56,27 @@ public:
 // Class members
 
     // Constructor. Components receive a unique ID and the set of parameters that were assigned in the Python input.
-    XTSimGenerator(SST::ComponentId_t id, SST::Params& params);
+    XTSimBus(SST::ComponentId_t id, SST::Params& params);
     
     // Destructor
-    ~XTSimGenerator();
+    ~XTSimBus();
 
 private:
     // Event handler, called when an event is received on our link
     // void sendEvent();
-
-    // Clock handler, called on each clock cycle
-    virtual bool clockTic(SST::Cycle_t);
 	
-
-	// Read from trace file
-	void readFromTrace();
 
 	void sendEvent();
 
 	// event handler
 	void handleEvent(SST::Event* ev);
 
-    // Parameters
-    // vector< curTrace;
-    // int eventSize;
-    // bool lastEventReceived;
-
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;
 
-	// id of this generator
-	size_t generatorID;
-
-	// path of trace file
-	string traceFilePath;
-
-	vector<CacheEvent> eventList;
-
-	// event offset
-	size_t offset = 0;
-
     // Links
     SST::Link* link;
-
-	bool started = false;
 };
-} // namespace XTSimGeneratorSpace
+} // namespace xtsim
 } // namespace SST
 #endif
