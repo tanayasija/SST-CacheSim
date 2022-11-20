@@ -1,5 +1,8 @@
 # Import the SST module
 import sst
+import os
+
+print("current directory:" + os.getcwd())
 
 ### Create the components
 cache = sst.Component("c1", "xtsim.cache")
@@ -10,7 +13,7 @@ generator = sst.Component("c0", "xtsim.XTSimGenerator")
 # to see parameter documentation
 generatorParams = {
         "generatorID" : 0,    # Required parameter, error if not provided
-        "traceFilePath" : "/Users/tanayasija/Documents/15-618/Project/sst-elements/src/sst/elements/xtsim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided
+        "traceFilePath" : "../traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided
 }
 generator.addParams(generatorParams)
 
