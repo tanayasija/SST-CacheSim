@@ -45,21 +45,6 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
     generatorID = params.find<size_t>("generatorID");
     traceFilePath = params.find<string>("traceFilePath");
 
-    // Get parameter from the Python input
-    // bool found;
-    // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
-
-    // If parameter wasn't found, end the simulation with exit code -1.
-    // Tell the user how to fix the error (set 'eventsToSend' parameter in the input)
-    // and which component generated the error (getName())
-    // if (!found) {
-    //     out->fatal(CALL_INFO, -1, "Error in %s: the input did not specify 'eventsToSend' parameter\n", getName().c_str());
-    // }
-
-    // This parameter controls how big the messages are
-    // If the user didn't set it, have the parameter default to 16 (bytes)
-    // eventSize = params.find<int64_t>("eventSize", 16);
-
     // Tell the simulation not to end until we're ready
     registerAsPrimaryComponent();
     primaryComponentDoNotEndSim();
@@ -77,15 +62,6 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 
     // read all the events from file
 	readFromTrace();
-
-    // establish the link between corresponding cache
-	// link = configureLink("port");
-
-    // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
-    // lastEventReceived = false;
-
-    // Register the statistic to link our variable to the documented statistic name
-    // bytesReceived = registerStatistic<uint64_t>("EventSizeReceived");
 }
 
 void XTSimGenerator::readFromTrace() {
@@ -107,10 +83,10 @@ void XTSimGenerator::readFromTrace() {
 		ss >> addr;
 		// if it's a read trace
 		if(line.find('R') != string::npos){
-			CacheEvent event(EVENT_TYPE::READ, addr);
+			CacheEvent event(EVENT_TYPE::PR_RD, addr, generatorID);
 			eventList.push_back(event);
 		}else{ // a write trace
-			CacheEvent event(EVENT_TYPE::EX_READ, addr);
+			CacheEvent event(EVENT_TYPE::PR_WR, addr, generatorID);
 			eventList.push_back(event);
 		}
 		// printf("[readFromTrace] one event added\n");
@@ -119,6 +95,10 @@ void XTSimGenerator::readFromTrace() {
 
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
+    if (offset == eventList.size()) {
+        // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
+        primaryComponentOKToEndSim(); 
+    }
 	printf("generator received event with addr: %llx\n", cacheEvent->addr);
 	printf("now sending new event\n");
 	sendEvent();
@@ -132,7 +112,7 @@ void XTSimGenerator::sendEvent(){
 	ev->event_type = eventList[offset].event_type;
 	printf("sending %lu\n", offset);
 	link->send(ev);
-	offset ++;
+	offset++;
 }
 
 /*

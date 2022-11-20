@@ -41,6 +41,20 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     out = new Output("", 1, 0, Output::STDOUT);
 
     // Get parameter from the Python input
+    parseParams(params);
+
+    // configure our link with a callback function that will be called whenever an event arrives
+    // Callback function is optional, if not provided then component must poll the link
+    cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
+    // buslink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleBusOp));
+    // arblink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleArbOp));
+
+    // Make sure we successfully configured the links
+    // Failure usually means the user didn't connect the port in the input file
+    // sst_assert(cpulink, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
+}
+
+void cache::parseParams(Params& params) {
     bool found;
     blockSize = params.find<size_t>("blockSize", 0, found);
     cacheSize = params.find<size_t>("cacheSize", 0, found);
@@ -66,16 +80,7 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
             cprotocol = CoherencyProtocol_t::MESI;
             break;
     }
-
-    // configure our link with a callback function that will be called whenever an event arrives
-    // Callback function is optional, if not provided then component must poll the link
-    cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
-
-    // Make sure we successfully configured the links
-    // Failure usually means the user didn't connect the port in the input file
-    // sst_assert(cpuLink, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 }
-
 
 /*
  * Destructor, clean up our output
@@ -95,7 +100,6 @@ void cache::handleProcessorOp(SST::Event *ev)
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
     
     if (event) {
-        
         cpulink->send(ev);
         // Receiver has the responsiblity for deleting events
         delete event;

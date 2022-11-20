@@ -98,7 +98,9 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"processorPort",  "Link to the generator for sending and receiving requests", { "XTsim.cacheEvent", ""} }
+        {"processorPort",  "Link to the generator for sending and receiving requests", { "xtsim.cacheEvent", ""} },
+        {"arbiterPort",  "Link to the arbiter for requesting bus access", { "xtsim.cacheEvent", ""} },
+        {"busPort",  "Link to the bus for sending and receiving requests", { "xtsim.cacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -107,7 +109,7 @@ public:
     // Optional since there is nothing to document - see SubComponent examples for more info
     SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS( )
 
-// Class members
+    // Class members
 
     // Constructor. Components receive a unique ID and the set of parameters that were assigned in the Python input.
     cache(SST::ComponentId_t id, SST::Params& params);
@@ -119,6 +121,10 @@ private:
     // Event handler, called when an event is received on our link
     void handleProcessorOp(SST::Event *ev);
     void handleBusOp(SST::Event *ev);
+    void handleArbOp(SST::Event *ev);
+
+    // Helper functions
+    void parseParams(Params& params);
 
     // Parameters
     size_t blockSize;
