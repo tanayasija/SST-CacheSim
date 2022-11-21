@@ -3,13 +3,13 @@
 
 #include <sst/core/component.h>
 #include <sst/core/link.h>
-#include "event.h"
 #include <vector>
 #include <string>
-#include <fstream>
-#include <iostream>
+#include <stdio.h>
 #include <queue>
 #include <list>
+#include "event.h"
+
 using std::vector;
 using std::string;
 using std::queue;
