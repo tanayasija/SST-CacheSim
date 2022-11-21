@@ -56,7 +56,7 @@ XTSimArbiter::XTSimArbiter(ComponentId_t id, Params &params) : Component(id) {
     // Callback function is optional, if not provided then component must poll the link
 	links.resize(processorNum);
 	for(int i = 0 ;i < processorNum; ++i){
-		string portName = "arbitrationPort" + std::to_string(i);
+		string portName = "arbiterPort_" + std::to_string(i);
 		links[i] = configureLink(portName, new Event::Handler<XTSimArbiter>(this, &XTSimArbiter::handleEvent));
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}

@@ -1,13 +1,14 @@
-#ifndef _XTSIM_GENERATOR_H
-#define _XTSIM_GENERATOR_H
+#ifndef _XTSIM_INTERCONNECT_H
+#define _XTSIM_INTERCONNECT_H
 
 #include <sst/core/component.h>
 #include <sst/core/link.h>
-#include "event.h"
 #include <vector>
 #include <string>
-#include <fstream>
-#include <iostream>
+#include <stdio.h>
+#include <condition_variable>
+#include "event.h"
+
 using std::vector;
 using std::string;
 
@@ -44,7 +45,7 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"arbitrationPort",  "Link to another component", { "xtsim.CacheEvent", ""} }
+        {"busPort",  "Link to another component", { "xtsim.CacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -65,17 +66,29 @@ private:
     // Event handler, called when an event is received on our link
     // void sendEvent();
 	
-
-	void sendEvent();
+	void sendEvent(pid_t pid, CacheEvent* ev);
 
 	// event handler
 	void handleEvent(SST::Event* ev);
+
+	// broadcast
+	void broadcast(size_t pidToFilter, CacheEvent* ev);
 
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;
 
     // Links
-    SST::Link* link;
+    vector<SST::Link*> links;
+
+	size_t processorNum;
+
+	// response counter. A transaction is completed when respCounter = processorNum - 1.
+	// reset after every transaction
+	int respCounter = 0;
+
+	bool readyForNext = true;
+
+	std::condition_variable cv;
 };
 } // namespace xtsim
 } // namespace SST

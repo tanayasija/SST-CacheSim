@@ -53,7 +53,7 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"arbitrationPort",  "Link to another component", { "xtsim.ArbEvent", ""} }
+        {"arbiterPort",  "Link to another component", { "xtsim.ArbEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -77,7 +77,7 @@ private:
 	// for round robin
 	size_t nextPid = 0;
 	list<ArbEvent> rrList;
-	list<ArbEvent>::iterator acIter = nullptr;
+	list<ArbEvent>::iterator acIter;
 
 	void sendEvent();
 
