@@ -121,42 +121,43 @@ public:
 private:
     // Event handler, called when an event is received on our link
     void handleProcessorOp(SST::Event *ev);
+    void handleProcessorEvent(CacheEvent *ev);
     void handleBusOp(SST::Event *ev);
     void handleArbOp(SST::Event *ev);
 
     // Basic cache wrapper functions
-    void handleReadHit(CacheEvent* ev, CacheLine_t& line);
-    void handleWriteHit(CacheEvent* ev, CacheLine_t& line);
+    void handleReadHit(CacheEvent* ev, CacheLine_t* line);
+    void handleWriteHit(CacheEvent* ev, CacheLine_t* line);
     void handleReadMiss(CacheEvent* ev);
     void handleWriteMiss(CacheEvent* ev);
 
     // MSI Protocol specific functions
-    void handleReadHitMsi(CacheEvent* ev, CacheLine_t& line);
-    void handleWriteHitMsi(CacheEvent* ev, CacheLine_t& line);
+    void handleReadHitMsi(CacheEvent* ev, CacheLine_t* line);
+    void handleWriteHitMsi(CacheEvent* ev, CacheLine_t* line);
     void handleReadMissMsi(CacheEvent* ev);
     void handleWriteMissMsi(CacheEvent* ev);
 
     // MESI Protocol specific functions
-    void handleReadHitMesi(CacheEvent* ev, CacheLine_t& line);
-    void handleWriteHitMesi(CacheEvent* ev, CacheLine_t& line);
+    void handleReadHitMesi(CacheEvent* ev, CacheLine_t* line);
+    void handleWriteHitMesi(CacheEvent* ev, CacheLine_t* line);
     void handleReadMissMesi(CacheEvent* ev);
     void handleWriteMissMesi(CacheEvent* ev);
 
     // Replacement policies
     CacheLine_t& evictLineRr(CacheEvent* event);
-    CacheLine_t& evictLineRr(CacheEvent* event);
-    CacheLine_t& evictLineRr(CacheEvent* event);
+    CacheLine_t& evictLineLru(CacheEvent* event);
+    CacheLine_t& evictLineMru(CacheEvent* event);
 
     // Bus and Arbiter Events
     CacheEvent* nextBusEvent;
     ArbEvent* nextArbEvent;
 
     // Helper functions
-    bool lookupCache(size_t addr);
+    CacheLine_t* lookupCache(size_t addr);
     void parseParams(Params& params);
     size_t logFunc(size_t num);
     CacheLine_t& evictLine(CacheEvent* event);
-    void cache::acquireBus(CacheEvent* event);
+    void acquireBus(CacheEvent* event);
 
     // Parameters
     size_t blockSize;
