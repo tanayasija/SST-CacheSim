@@ -142,13 +142,21 @@ private:
     void handleReadMissMesi(CacheEvent* ev);
     void handleWriteMissMesi(CacheEvent* ev);
 
+    // Replacement policies
+    CacheLine_t& evictLineRr(CacheEvent* event);
+    CacheLine_t& evictLineRr(CacheEvent* event);
+    CacheLine_t& evictLineRr(CacheEvent* event);
+
     // Bus and Arbiter Events
-    CacheEvent nextBusEvent;
+    CacheEvent* nextBusEvent;
+    ArbEvent* nextArbEvent;
 
     // Helper functions
     bool lookupCache(size_t addr);
     void parseParams(Params& params);
     size_t logFunc(size_t num);
+    CacheLine_t& evictLine(CacheEvent* event);
+    void cache::acquireBus(CacheEvent* event);
 
     // Parameters
     size_t blockSize;

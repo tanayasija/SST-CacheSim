@@ -83,6 +83,7 @@ void cache::handleProcessorOp(SST::Event *ev)
 {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
     if (event) {
+        timestamp++;
         cpulink->send(ev);
         handleProcessorEvent(event);
         // Receiver has the responsiblity for deleting events
@@ -173,9 +174,9 @@ inline void cache::handleWriteMiss(CacheEvent* event) {
 
 void cache::handleReadHitMsi(CacheEvent* event, CacheLine_t& line) {
     if (line.state == CacheState_t::M) {
-        ; // Do nothing since line is in modified state
+        line.timestamp = timestamp; // Do nothing since line is in modified state
     } else if (line.state == CacheState_t::S) {
-        ; // Do nothing since line is in shared state
+        line.timestamp = timestamp; // Do nothing since line is in shared state
     } else if (line.state == CacheState_t::I) {
         // This state is not possible in a read hit
         out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
@@ -186,14 +187,37 @@ void cache::handleReadHitMsi(CacheEvent* event, CacheLine_t& line) {
 
 void cache::handleReadMissMsi(CacheEvent* event) {
     // The cache line is assumed to be in implicit invalid state here
+    nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+    nextBusEvent->event_type = EVENT_TYPE::BUS_RD;
+    nextBusEvent->addr = event->addr;
+    nextBusEvent->pid = event->pid;
 
+    // Evict the line here itself
+    CacheLine_t& line = evictLine(event);
+    line.state = CacheState_t::S;
+    line.dirty = false;
+    line.timestamp = timestamp;
+
+    // Build the arbiter event and request for bus
+    acquireBus(event);
 }
 
 void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t& line) {
     if (line.state == CacheState_t::M) {
         ; // Do nothing since line is in modified state
     } else if (line.state == CacheState_t::S) {
-        ;
+        nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+        nextBusEvent->event_type = EVENT_TYPE::BUS_UPGR;
+        nextBusEvent->addr = event->addr;
+        nextBusEvent->pid = event->pid;
+
+        // Update cache line attributes
+        line.state = CacheState_t::M;
+        line.dirty = true;
+        line.timestamp = timestamp;
+
+        // Build the arbiter event and request for bus
+        acquireBus(event);
     } else if (line.state == CacheState_t::I) {
         // This state is not possible in a read hit
         out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
@@ -203,7 +227,18 @@ void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t& line) {
 }
 
 void cache::handleWriteMissMsi(CacheEvent* event) {
-    
+    nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+    nextBusEvent->event_type = EVENT_TYPE::BUS_RDX;
+    nextBusEvent->addr = event->addr;
+    nextBusEvent->pid = event->pid;
+
+    // Evict the line here itself
+    CacheLine_t& line = evictLine(event);
+    line.state = CacheState_t::M;
+    line.dirty = true;
+    line.timestamp = timestamp;
+
+    acquireBus(event);
 }
 
 /**
@@ -225,7 +260,47 @@ void cache::handleWriteHitMesi(CacheEvent* event, CacheLine_t& line) {
 }
 
 void cache::handleWriteMissMesi(CacheEvent* event) {
-    
+
+}
+
+/**
+ * ************************************************
+ * Replacement policies
+ * ************************************************
+ */
+
+CacheLine_t& cache::evictLineRr(CacheEvent* event) {
+    size_t idx =  (addr >> nbbbits) & ( 1 << (nsbits - 1));
+    std::vector<CacheLine_t> cacheSet = cacheLines[idx];
+    for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == true && cacheSet[i].address == addr) {
+            return cacheSet[i];
+        }
+    }
+    return nullptr;
+}
+
+CacheLine_t& cache::evictLineRr(CacheEvent* event) {
+    size_t idx =  (addr >> nbbbits) & ( 1 << (nsbits - 1));
+    std::vector<CacheLine_t> cacheSet = cacheLines[idx];
+    size_t minTimestamp = timestamp + 1;
+    for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == true && cacheSet[i].address == addr) {
+            return cacheSet[i];
+        }
+    }
+    return nullptr;
+}
+
+CacheLine_t& cache::evictLineRr(CacheEvent* event) {
+    size_t idx =  (addr >> nbbbits) & ( 1 << (nsbits - 1));
+    std::vector<CacheLine_t> cacheSet = cacheLines[idx];
+    for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == true && cacheSet[i].address == addr) {
+            return cacheSet[i];
+        }
+    }
+    return nullptr; 
 }
 
 /**
@@ -262,6 +337,8 @@ void cache::parseParams(Params& params) {
         case 2:
             rpolicy = ReplacementPolicy_t::MRU;
             break;
+        default:
+            out->fatal(CALL_INFO, -1, "Error! Invalid replacement policy %s!\n", getName().c_str());
     } 
     size_t protocol = params.find<size_t>("protocol", 0, found);
     switch(protocol) {
@@ -271,6 +348,8 @@ void cache::parseParams(Params& params) {
         case 1:
             cprotocol = CoherencyProtocol_t::MESI;
             break;
+        default:
+            out->fatal(CALL_INFO, -1, "Error! Invalid cache coherence protocol %s!\n", getName().c_str());
     }
 }
 
@@ -282,4 +361,28 @@ size_t logFunc(size_t num) {
         logVal++;
     }
     return logVal;
+}
+
+void cache::acquireBus(CacheEvent* event) {
+    // Build the arbiter event and request for bus
+    nextArbEvent = new ArbEvent;
+    nextArbEvent->event_type = ARB_EVENT_TYPE::AC;
+    nextArbEvent->pid = event->pid;
+    arblink->send(nextArbEvent);
+}
+
+CacheLine_t& cache::evictLine(CacheEvent* event) {
+    switch(rpolicy) {
+        case ReplacementPolicy_t::RR:
+            evictLineRr(event);
+            break;
+        case ReplacementPolicy_t::LRU:
+            evictLineLru(event);
+            break;
+        case ReplacementPolicy_t::MRU:
+            evictLineMru(event);
+            break;
+        default:
+            out->fatal(CALL_INFO, -1, "Error! Invalid replacement policy %s!\n", getName().c_str());
+    }
 }
