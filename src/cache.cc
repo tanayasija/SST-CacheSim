@@ -61,9 +61,7 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
     cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
-    // std::string busPort = "busPort_" + std::to_string(cacheId);
     buslink = configureLink("busPort", new Event::Handler<cache>(this, &cache::handleBusOp));
-    // std::string arbPort = "arbiterPort_" + std::to_string(cacheId);
     arblink = configureLink("arbiterPort", new Event::Handler<cache>(this, &cache::handleArbOp));
 
     // Make sure we successfully configured the links
@@ -128,10 +126,12 @@ void cache::handleBusOp(SST::Event *ev) {
     } else {
         handleBusEvent(event);
     }
+    // delete ev;
 }
 
 void cache::handleBusEvent(CacheEvent *event) {
     CacheLine_t *line = lookupCache(event->addr);
+    printf("Cache received event from bus %d %d\n", cacheId, event->pid);
     CacheEvent *busResponse;
     if (line) {
         switch (event->event_type) {
@@ -139,18 +139,21 @@ void cache::handleBusEvent(CacheEvent *event) {
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
+                busResponse->pid = cacheId;
                 break;
             case EVENT_TYPE::BUS_RDX:
                 line->valid = false;
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
+                busResponse->pid = cacheId;
                 break;
             case EVENT_TYPE::BUS_UPGR:
                 line->valid = false;    
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
+                busResponse->pid = cacheId;
                 break;
             default:
                 out->fatal(CALL_INFO, -1, "Error! Invalid coherency protocol event\n");
@@ -159,7 +162,9 @@ void cache::handleBusEvent(CacheEvent *event) {
         busResponse = new CacheEvent;
         busResponse->event_type = EVENT_TYPE::EMPTY;
         busResponse->addr = event->addr;
+        busResponse->pid = cacheId;
     }
+    printf("Sending bus response %lx %lu %lu\n", busResponse->addr, busResponse->event_type, busResponse->pid);
     buslink->send(busResponse);
 }
 
@@ -168,6 +173,7 @@ void cache::handleArbOp(SST::Event *ev) {
     // Forward the coherency request on interconnect
     blocked = true;
     buslink->send(nextBusEvent);
+    // delete ev;
 }
 
 /**

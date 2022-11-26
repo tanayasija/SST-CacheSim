@@ -64,7 +64,6 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 		links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}
-
 }
 
 void XTSimBus::handleEvent(SST::Event* ev){
@@ -92,6 +91,7 @@ void XTSimBus::handleEvent(SST::Event* ev){
 void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
 	for(int i = 0; i < processorNum; ++i){
 		if(i == pidToFilter) continue;
+        printf("Broadcast event to cache %d %lx\n", i, ev->addr);
 		links[i]->send(ev);
 	}
 }

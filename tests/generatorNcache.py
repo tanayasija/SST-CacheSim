@@ -48,18 +48,18 @@ for i in range(num_processors):
                 "blockSize" : 64,    # Required parameter, error if not provided
                 "cacheSize" : 16384,       # Optional parameter, defaults to 16 if not provided,
                 "associativity" : 4,
-                "cacheId" : 0
+                "cacheId" : i
         }
         cache.addParams(cacheParams)
 
         ### Link the components via their 'port' ports
-        proclink = sst.Link("proc_link")
+        proclink = sst.Link(f"proc_link{i}")
         proclink.connect( (cache, "processorPort", "1ns"), (generator, "processorPort", "1ns"))
 
-        buslink = sst.Link("bus_link")
+        buslink = sst.Link(f"bus_link{i}")
         buslink.connect( (cache, "busPort", "1ns"), (bus, "busPort_" + str(i), "1ns"))
 
-        arblink = sst.Link("arb_link")
+        arblink = sst.Link(f"arb_link{i}")
         arblink.connect( (cache, "arbiterPort", "1ns"), (arbiter, "arbiterPort_" + str(i), "1ns"))
 
         procLinks.append(proclink)

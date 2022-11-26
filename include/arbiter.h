@@ -53,7 +53,14 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"arbiterPort_0",  "Link to another component", { "xtsim.ArbEvent", ""} }
+        {"arbiterPort_0",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_1",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_2",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_3",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_4",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_5",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_6",  "Link to another component", { "xtsim.ArbEvent", ""} },
+        {"arbiterPort_7",  "Link to another component", { "xtsim.ArbEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info

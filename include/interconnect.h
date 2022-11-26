@@ -46,7 +46,14 @@ public:
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"busPort_0",  "Link to another component", { "xtsim.CacheEvent", ""} }
+        {"busPort_0",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_1",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_2",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_3",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_4",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_5",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_6",  "Link to another component", { "xtsim.CacheEvent", ""} },
+        {"busPort_7",  "Link to another component", { "xtsim.CacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
