@@ -443,7 +443,7 @@ size_t cache::logFunc(size_t num) {
 
 void cache::acquireBus(CacheEvent* event) {
     // Build the arbiter event and request for bus
-    printf("Building arb event\n");
+    printf("Building arb event. pid: %d\n", event->pid);
     nextArbEvent = new ArbEvent(ARB_EVENT_TYPE::AC, event->pid);
     printf("Sending arb event\n");
     arblink->send(nextArbEvent);

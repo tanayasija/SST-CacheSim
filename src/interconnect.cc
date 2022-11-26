@@ -70,6 +70,11 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 void XTSimBus::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
 	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+	if(processorNum == 1){
+		sendEvent(cacheEvent->pid, cacheEvent);
+		return;
+	}
+
 	if(readyForNext){
 		readyForNext = false;
 		launcherPid = cacheEvent->pid;

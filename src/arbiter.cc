@@ -87,11 +87,12 @@ void XTSimArbiter::getNext(){
 }
 
 void XTSimArbiter::handleEvent(SST::Event* ev){
-	printf("arbiter received event with type\n");
 	ArbEvent* arbEvent = dynamic_cast<ArbEvent*>(ev);
+	printf("arbiter received event with type: %d from pid:%d\n", arbEvent->event_type, arbEvent->pid);
 
 	// if receiving a release event
 	if(arbEvent->event_type == ARB_EVENT_TYPE::RL){
+		printf("RL\n");
 		if(arbPolicy == ArbPolicy::FIFO){
 			fifoQueue.pop();
 			if(fifoQueue.empty()) return;
@@ -106,6 +107,7 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 
 	// else if receiving an acquire event
 	if(arbPolicy == ArbPolicy::FIFO){
+		printf("AC\n");
 		fifoQueue.push(*arbEvent);
 		if(fifoQueue.size() == 1){
 			sendEvent();
@@ -120,13 +122,15 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 }
 
 void XTSimArbiter::sendEvent(){
+	printf("arb sendEvent\n");
 	if(arbPolicy == ArbPolicy::FIFO){
-		ArbEvent ev = fifoQueue.front();
+		ArbEvent& ev = fifoQueue.front();
+		printf("pid: %d\n", ev.pid);
 		links[ev.pid]->send(&ev);
 		printf("[arbiter]: granted access to %d\n", ev.pid);
 	}
 	else{
-		ArbEvent ev = *acIter;
+		ArbEvent& ev = *acIter;
 		links[ev.pid]->send(&ev);
 		printf("[arbiter]: granted access to %d\n", ev.pid);
 	}

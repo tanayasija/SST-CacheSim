@@ -110,6 +110,7 @@ void XTSimGenerator::sendEvent(){
     printf("Addr %llx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
+	ev->pid = eventList[offset].pid;
 	printf("sending %lu\n", offset);
 	link->send(ev);
 	offset++;
