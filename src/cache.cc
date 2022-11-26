@@ -20,6 +20,7 @@
 
 #include "./include/event.h"
 #include "./include/cache.h"
+#include <string>
 
 using namespace SST;
 using namespace SST::xtsim;
@@ -60,7 +61,9 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
     cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
+    // std::string busPort = "busPort_" + std::to_string(cacheId);
     buslink = configureLink("busPort", new Event::Handler<cache>(this, &cache::handleBusOp));
+    // std::string arbPort = "arbiterPort_" + std::to_string(cacheId);
     arblink = configureLink("arbiterPort", new Event::Handler<cache>(this, &cache::handleArbOp));
 
     // Make sure we successfully configured the links
@@ -84,10 +87,9 @@ cache::~cache()
 void cache::handleProcessorOp(SST::Event *ev)
 {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
-    printf("Received processor instr %lu\n", event->addr);
+    printf("Received processor instr %lx\n", event->addr);
     if (event) {
         timestamp++;
-        cpulink->send(ev);
         handleProcessorEvent(event);
         // Receiver has the responsiblity for deleting events
         delete event;
@@ -121,6 +123,7 @@ void cache::handleBusOp(SST::Event *ev) {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
     if (blocked == true) {
         blocked = false;
+        cpulink->send(event);
         releaseBus(event);
     } else {
         handleBusEvent(event);
@@ -173,7 +176,7 @@ void cache::handleArbOp(SST::Event *ev) {
  * ************************************************
  */
 
-inline void cache::handleReadHit(CacheEvent* event, CacheLine_t* line) {
+void cache::handleReadHit(CacheEvent* event, CacheLine_t* line) {
     switch(cprotocol) {
         case CoherencyProtocol_t::MSI:
             handleReadHitMsi(event, line);
@@ -186,7 +189,7 @@ inline void cache::handleReadHit(CacheEvent* event, CacheLine_t* line) {
     }
 }
 
-inline void cache::handleReadMiss(CacheEvent* event) {
+void cache::handleReadMiss(CacheEvent* event) {
     switch(cprotocol) {
         case CoherencyProtocol_t::MSI:
             handleReadMissMsi(event);
@@ -199,7 +202,7 @@ inline void cache::handleReadMiss(CacheEvent* event) {
     }
 }
 
-inline void cache::handleWriteHit(CacheEvent* event, CacheLine_t* line) {
+void cache::handleWriteHit(CacheEvent* event, CacheLine_t* line) {
     switch(cprotocol) {
         case CoherencyProtocol_t::MSI:
             handleWriteHitMsi(event, line);
@@ -212,7 +215,7 @@ inline void cache::handleWriteHit(CacheEvent* event, CacheLine_t* line) {
     }
 }
 
-inline void cache::handleWriteMiss(CacheEvent* event) {
+void cache::handleWriteMiss(CacheEvent* event) {
     switch(cprotocol) {
         case CoherencyProtocol_t::MSI:
             handleWriteMissMsi(event);
@@ -297,6 +300,7 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
     line.dirty = true;
     line.timestamp = timestamp;
 
+    printf("Request for bus from cache %lu\n", cacheId);
     acquireBus(event);
 }
 
@@ -424,6 +428,7 @@ void cache::parseParams(Params& params) {
         default:
             out->fatal(CALL_INFO, -1, "Error! Invalid cache coherence protocol %s!\n", getName().c_str());
     }
+    cacheId = params.find<size_t>("cacheId", 0, found);
 }
 
 size_t cache::logFunc(size_t num) {
@@ -438,10 +443,11 @@ size_t cache::logFunc(size_t num) {
 
 void cache::acquireBus(CacheEvent* event) {
     // Build the arbiter event and request for bus
-    nextArbEvent = new ArbEvent;
-    nextArbEvent->event_type = ARB_EVENT_TYPE::AC;
-    nextArbEvent->pid = event->pid;
+    printf("Building arb event\n");
+    nextArbEvent = new ArbEvent(ARB_EVENT_TYPE::AC, event->pid);
+    printf("Sending arb event\n");
     arblink->send(nextArbEvent);
+    printf("Sent arb event\n");
 }
 
 void cache::releaseBus(CacheEvent* event) {

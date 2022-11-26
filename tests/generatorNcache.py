@@ -23,19 +23,31 @@ generator.addParams(generatorParams)
 cacheParams = {
         "blockSize" : 64,    # Required parameter, error if not provided
         "cacheSize" : 16384,       # Optional parameter, defaults to 16 if not provided,
-        "associativity" : 4
+        "associativity" : 4,
+        "cacheId" : 0
 }
 cache.addParams(cacheParams)
+
+arbiterParams = {
+        "processorNum" : 1,    # Required parameter, error if not provided
+        "arbPolicy" : 0
+}
+arbiter.addParams(arbiterParams)
+
+busParams = {
+        "processorNum" : 1,    # Required parameter, error if not provided
+}
+bus.addParams(busParams)
 
 ### Link the components via their 'port' ports
 link = sst.Link("proc_link")
 link.connect( (cache, "processorPort", "1ns"), (generator, "processorPort", "1ns"))
 
 link = sst.Link("bus_link")
-link.connect( (cache, "busPort", "1ns"), (bus, "busPort", "1ns"))
+link.connect( (cache, "busPort", "1ns"), (bus, "busPort_0", "1ns"))
 
 link = sst.Link("arb_link")
-link.connect( (cache, "arbiterPort", "1ns"), (arbiter, "arbiterPort", "1ns"))
+link.connect( (cache, "arbiterPort", "1ns"), (arbiter, "arbiterPort_0", "1ns"))
 
 ### Enable statistics
 # Limit the verbosity of statistics to any with a load level from 0-7

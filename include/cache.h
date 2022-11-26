@@ -93,15 +93,16 @@ public:
         { "cacheSize", "Total Cache size in bytes", "16384"},
         { "associativity", "Cache associativity", "4"},
         { "replacementPolicy", "Replacement policy one of RR(0), LRU(1), MRU(2)", "1"},
+        { "cacheId", "Id of this cache", "0"},
         { "protocol", "Cache coherency protocol one of MSI(0), MESI(1)", "0"}
     )
 
     // Document the ports that this component has
     // {"Port name", "Description", { "list of event types that the port can handle"} }
     SST_ELI_DOCUMENT_PORTS(
-        {"processorPort",  "Link to the generator for sending and receiving requests", { "xtsim.cacheEvent", ""} },
-        {"arbiterPort",  "Link to the arbiter for requesting bus access", { "xtsim.cacheEvent", ""} },
-        {"busPort",  "Link to the bus for sending and receiving requests", { "xtsim.cacheEvent", ""} }
+        {"processorPort",  "Link to the generator for sending and receiving requests", { "xtsim.CacheEvent", ""} },
+        {"arbiterPort",  "Link to the arbiter for requesting bus access", { "xtsim.ArbEvent", ""} },
+        {"busPort",  "Link to the bus for sending and receiving requests", { "xtsim.CacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info
@@ -162,6 +163,7 @@ private:
     void releaseBus(CacheEvent* event);
 
     // Parameters
+    size_t cacheId;
     size_t blockSize;
     size_t cacheSize;
     size_t associativity;

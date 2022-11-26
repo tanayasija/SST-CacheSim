@@ -65,22 +65,6 @@ XTSimArbiter::XTSimArbiter(ComponentId_t id, Params &params) : Component(id) {
 		links[i] = configureLink(portName, new Event::Handler<XTSimArbiter>(this, &XTSimArbiter::handleEvent));
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}
-
-    // Make sure we successfully configured the links
-    // Failure usually means the user didn't connect the port in the input file
-
-    // set our clock. The simulator will call 'clockTic' at a 1GHz frequency
-    // registerClock("1GHz", new Clock::Handler<XTSimArbiter>(this, &XTSimArbiter::clockTic));
-
-
-    // establish the link between corresponding cache
-	// link = configureLink("port");
-
-    // This simulation will end when we have sent 'eventsToSend' events and received a 'LAST' event
-    // lastEventReceived = false;
-
-    // Register the statistic to link our variable to the documented statistic name
-    // bytesReceived = registerStatistic<uint64_t>("EventSizeReceived");
 }
 
 void XTSimArbiter::getNext(){
@@ -90,7 +74,7 @@ void XTSimArbiter::getNext(){
 	}
 	while(true){
 		for(auto it = rrList.begin(); it != rrList.end(); ++it){
-			if(it->pid = nextPid){
+			if(it->pid == nextPid){
 				acIter = it;
 				nextPid ++;
 				nextPid %= processorNum;
@@ -103,8 +87,8 @@ void XTSimArbiter::getNext(){
 }
 
 void XTSimArbiter::handleEvent(SST::Event* ev){
+	printf("arbiter received event with type\n");
 	ArbEvent* arbEvent = dynamic_cast<ArbEvent*>(ev);
-	printf("arbiter received event with type: %d\n", arbEvent->event_type);
 
 	// if receiving a release event
 	if(arbEvent->event_type == ARB_EVENT_TYPE::RL){
