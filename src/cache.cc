@@ -60,8 +60,8 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
     cpulink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleProcessorOp));
-    // buslink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleBusOp));
-    // arblink = configureLink("processorPort", new Event::Handler<cache>(this, &cache::handleArbOp));
+    buslink = configureLink("busPort", new Event::Handler<cache>(this, &cache::handleBusOp));
+    arblink = configureLink("arbiterPort", new Event::Handler<cache>(this, &cache::handleArbOp));
 
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
@@ -84,6 +84,7 @@ cache::~cache()
 void cache::handleProcessorOp(SST::Event *ev)
 {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
+    printf("Received processor instr %lu\n", event->addr);
     if (event) {
         timestamp++;
         cpulink->send(ev);
@@ -425,7 +426,7 @@ void cache::parseParams(Params& params) {
     }
 }
 
-size_t logFunc(size_t num) {
+size_t cache::logFunc(size_t num) {
     size_t exp = 1;
     size_t logVal = 0;
     while (exp < num) {

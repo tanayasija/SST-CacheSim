@@ -5,28 +5,37 @@ import os
 print("current directory:" + os.getcwd())
 
 ### Create the components
-cache = sst.Component("c1", "xtsim.cache")
-generator = sst.Component("c0", "xtsim.XTSimGenerator")
+cache = sst.Component("cache", "xtsim.cache")
+generator = sst.Component("generator", "xtsim.XTSimGenerator")
+bus = sst.Component("bus", "xtsim.XTSimBus")
+arbiter = sst.Component("arbiter", "xtsim.XTSimArbiter")
+
 
 ### Parameterize the components.
 # Run 'sst-info simpleElementExample.example0' at the command line 
 # to see parameter documentation
 generatorParams = {
         "generatorID" : 0,    # Required parameter, error if not provided
-        "traceFilePath" : "../traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided
+        "traceFilePath" : "/Users/tanayasija/Documents/15-618/Project/sst-elements/src/sst/elements/xtsim/traces/pinatrace.out"
 }
 generator.addParams(generatorParams)
 
 cacheParams = {
-        "blockSize" : 0,    # Required parameter, error if not provided
-        # "cacheSize" : "/Users/admin/Desktop/pp/SST/sst-elements/src/sst/elements/SST-CacheSim/traces/pinatrace.out"        # Optional parameter, defaults to 16 if not provided,
-        # "associativity" : 
+        "blockSize" : 64,    # Required parameter, error if not provided
+        "cacheSize" : 16384,       # Optional parameter, defaults to 16 if not provided,
+        "associativity" : 4
 }
 cache.addParams(cacheParams)
 
 ### Link the components via their 'port' ports
-link = sst.Link("component_link")
+link = sst.Link("proc_link")
 link.connect( (cache, "processorPort", "1ns"), (generator, "processorPort", "1ns"))
+
+link = sst.Link("bus_link")
+link.connect( (cache, "busPort", "1ns"), (bus, "busPort", "1ns"))
+
+link = sst.Link("arb_link")
+link.connect( (cache, "arbiterPort", "1ns"), (arbiter, "arbiterPort", "1ns"))
 
 ### Enable statistics
 # Limit the verbosity of statistics to any with a load level from 0-7

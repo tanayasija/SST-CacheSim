@@ -8,10 +8,14 @@ AM_CPPFLAGS += \
 compdir = $(pkglibdir)
 comp_LTLIBRARIES = libxtsim.la
 libxtsim_la_SOURCES = \
-	include/cache.h \
+    include/arbiter.h \
     include/event.h \
+	include/cache.h \
     include/generator.h \
+    include/interconnect.h \
+    src/arbiter.cc \
     src/cache.cc \
+    src/interconnect.cc \
     src/generator.cc
 
 deprecated_libxtsim_sources =
