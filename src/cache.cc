@@ -122,15 +122,15 @@ void cache::handleBusOp(SST::Event *ev) {
         blocked = false;
         releaseBus(event);
     } else {
-        handleBusEvent(ev);
+        handleBusEvent(event);
     }
 }
 
-void cache::handleBusEvent(CacheEvent *ev) {
-    CacheLine_t *line = lookupCache(ev);
+void cache::handleBusEvent(CacheEvent *event) {
+    CacheLine_t *line = lookupCache(event->addr);
     CacheEvent *busResponse;
     if (line) {
-        switch (ev->event_type) {
+        switch (event->event_type) {
             case EVENT_TYPE::BUS_RD:
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
