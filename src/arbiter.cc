@@ -46,7 +46,12 @@ XTSimArbiter::XTSimArbiter(ComponentId_t id, Params &params) : Component(id) {
     // Get parameter from the Python input
     // bool found;
     processorNum = params.find<size_t>("processorNum");
-	arbPolicy = params.find<ArbPolicy>("arbPolicy");
+	int arbPolicyInt = params.find<int>("arbPolicy");
+	if(arbPolicyInt == 0){
+		arbPolicy = ArbPolicy::FIFO;
+	}else if(arbPolicyInt == 1){
+		arbPolicy = ArbPolicy::RR;
+	}
 
     // Tell the simulation not to end until we're ready
     // registerAsPrimaryComponent();

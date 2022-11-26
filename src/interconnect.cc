@@ -65,23 +65,19 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}
 
-    // Make sure we successfully configured the links
-    // Failure usually means the user didn't connect the port in the input file
-    sst_assert(link, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
-
 }
 
 void XTSimBus::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-	printf("bus received event with addr: %llx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
 	if(readyForNext){
 		readyForNext = false;
+		launcherPid = cacheEvent->pid;
 		broadcast(cacheEvent->pid, cacheEvent);
-		sendEvent();
 	}else{
 		respCounter ++;
-		if(resCounter == processorNum - 1){
-			cv.notify_one();
+		if(respCounter == processorNum - 1){
+			sendEvent(launcherPid, cacheEvent);
 			respCounter = 0;
 			readyForNext = true;
 		}
@@ -98,7 +94,7 @@ void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
 // return the transaction resp to launching processor
 void XTSimBus::sendEvent(pid_t pid, CacheEvent* ev){
 	// TODO: how to tackle spurious wakeup
-	cv.wait();
+	// cv.wait(mut);
 	links[pid]->send(ev);
 }
 

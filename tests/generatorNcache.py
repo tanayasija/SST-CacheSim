@@ -16,7 +16,7 @@ arbiter = sst.Component("arbiter", "xtsim.XTSimArbiter")
 # to see parameter documentation
 generatorParams = {
         "generatorID" : 0,    # Required parameter, error if not provided
-        "traceFilePath" : "/Users/tanayasija/Documents/15-618/Project/sst-elements/src/sst/elements/xtsim/traces/pinatrace.out"
+        "traceFilePath" : "./traces/pinatrace.out"
 }
 generator.addParams(generatorParams)
 

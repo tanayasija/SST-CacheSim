@@ -6,7 +6,8 @@
 #include <vector>
 #include <string>
 #include <stdio.h>
-#include <condition_variable>
+// #include <condition_variable>
+// #include <mutex>
 #include "event.h"
 
 using std::vector;
@@ -86,9 +87,12 @@ private:
 	// reset after every transaction
 	int respCounter = 0;
 
+	int launcherPid;
+
 	bool readyForNext = true;
 
-	std::condition_variable cv;
+	// std::condition_variable cv;
+	// std::mutex mut;
 };
 } // namespace xtsim
 } // namespace SST
