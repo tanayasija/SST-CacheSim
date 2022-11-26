@@ -123,6 +123,7 @@ private:
     void handleProcessorOp(SST::Event *ev);
     void handleProcessorEvent(CacheEvent *ev);
     void handleBusOp(SST::Event *ev);
+    void handleBusEvent(CacheEvent *ev);
     void handleArbOp(SST::Event *ev);
 
     // Basic cache wrapper functions
@@ -158,6 +159,7 @@ private:
     size_t logFunc(size_t num);
     CacheLine_t& evictLine(CacheEvent* event);
     void acquireBus(CacheEvent* event);
+    void releaseBus(CacheEvent* event);
 
     // Parameters
     size_t blockSize;
@@ -167,9 +169,13 @@ private:
     size_t nsbits; // Number of bits for determining set
     size_t nbbits; // Number of bit for block size
     size_t timestamp;
+    bool blocked;
     std::vector<std::vector<CacheLine_t>> cacheLines;
     ReplacementPolicy_t rpolicy;
     CoherencyProtocol_t cprotocol;
+
+    // Replacement policy data structures
+    std::vector<size_t> rrCounter;
 
     // SST Output object, for printing, error messages, etc.
     SST::Output* out;

@@ -54,6 +54,8 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     
     // Logical timestamp equal to local counter of requests for this processor
     timestamp = 0;
+    rrCounter.resize(nsets);
+    blocked = false;
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
@@ -113,6 +115,62 @@ void cache::handleProcessorEvent(CacheEvent* event) {
         }
     }
 }
+
+void cache::handleBusOp(SST::Event *ev) {
+    CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
+    if (blocked == true) {
+        blocked = false;
+        releaseBus(event);
+    } else {
+        handleBusEvent(ev);
+    }
+}
+
+void cache::handleBusEvent(CacheEvent *ev) {
+    CacheLine_t *line = lookupCache(ev);
+    CacheEvent *busResponse;
+    if (line) {
+        switch (ev->event_type) {
+            case EVENT_TYPE::BUS_RD:
+                busResponse = new CacheEvent;
+                busResponse->event_type = EVENT_TYPE::SHARED;
+                busResponse->addr = event->addr;
+                break;
+            case EVENT_TYPE::BUS_RDX:
+                line->valid = false;
+                busResponse = new CacheEvent;
+                busResponse->event_type = EVENT_TYPE::SHARED;
+                busResponse->addr = event->addr;
+                break;
+            case EVENT_TYPE::BUS_UPGR:
+                line->valid = false;    
+                busResponse = new CacheEvent;
+                busResponse->event_type = EVENT_TYPE::SHARED;
+                busResponse->addr = event->addr;
+                break;
+            default:
+                out->fatal(CALL_INFO, -1, "Error! Invalid coherency protocol event\n");
+        }
+    } else {
+        busResponse = new CacheEvent;
+        busResponse->event_type = EVENT_TYPE::EMPTY;
+        busResponse->addr = event->addr;
+    }
+    buslink->send(busResponse);
+}
+
+void cache::handleArbOp(SST::Event *ev) {
+    // A message from Arbiter indicates we have control of the interconnect
+    // Forward the coherency request on interconnect
+    blocked = true;
+    buslink->send(nextBusEvent);
+}
+
+/**
+ * ************************************************
+ * Cache Functions
+ * ************************************************
+ */
 
 inline void cache::handleReadHit(CacheEvent* event, CacheLine_t* line) {
     switch(cprotocol) {
@@ -272,35 +330,49 @@ void cache::handleWriteMissMesi(CacheEvent* event) {
 CacheLine_t& cache::evictLineRr(CacheEvent* event) {
     size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
-    for (size_t i = 0; i < associativity; i++) {
-        if (cacheSet[i].valid == true && cacheSet[i].address == event->addr) {
-            return cacheSet[i];
-        }
-    }
-    return cacheSet[0];
+    size_t lineIdx = rrCounter[idx];
+    lineIdx = (lineIdx + 1) % associativity;
+    return cacheSet[lineIdx];
 }
 
 CacheLine_t& cache::evictLineLru(CacheEvent* event) {
     size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
-    size_t minTimestamp = timestamp + 1;
     for (size_t i = 0; i < associativity; i++) {
-        if (cacheSet[i].valid == true && cacheSet[i].address == event->addr) {
+        if (cacheSet[i].valid == false) {
             return cacheSet[i];
         }
     }
-    return cacheSet[0];
+
+    size_t lineIdx = 0;
+    size_t minTimestamp = timestamp + 1;
+    for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == true and cacheSet[i].timestamp < minTimestamp) {
+            lineIdx = i;
+            minTimestamp = cacheSet[i].timestamp;
+        }
+    }
+    return cacheSet[lineIdx];
 }
 
 CacheLine_t& cache::evictLineMru(CacheEvent* event) {
     size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
-        if (cacheSet[i].valid == true && cacheSet[i].address == event->addr) {
+        if (cacheSet[i].valid == false) {
             return cacheSet[i];
         }
     }
-    return cacheSet[0];
+
+    size_t lineIdx = 0;
+    size_t maxTimestamp = 0;
+    for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == true and cacheSet[i].timestamp > maxTimestamp) {
+            lineIdx = i;
+            maxTimestamp = cacheSet[i].timestamp;
+        }
+    }
+    return cacheSet[lineIdx];
 }
 
 /**
@@ -367,6 +439,14 @@ void cache::acquireBus(CacheEvent* event) {
     // Build the arbiter event and request for bus
     nextArbEvent = new ArbEvent;
     nextArbEvent->event_type = ARB_EVENT_TYPE::AC;
+    nextArbEvent->pid = event->pid;
+    arblink->send(nextArbEvent);
+}
+
+void cache::releaseBus(CacheEvent* event) {
+    // Build the arbiter event and request for bus
+    nextArbEvent = new ArbEvent;
+    nextArbEvent->event_type = ARB_EVENT_TYPE::RL;
     nextArbEvent->pid = event->pid;
     arblink->send(nextArbEvent);
 }
