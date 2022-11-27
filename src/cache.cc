@@ -85,7 +85,7 @@ cache::~cache()
 void cache::handleProcessorOp(SST::Event *ev)
 {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
-    printf("Received processor instr %lx\n", event->addr);
+    // printf("Received processor instr %lx\n", event->addr);
     if (event) {
         timestamp++;
         handleProcessorEvent(event);
@@ -121,17 +121,18 @@ void cache::handleBusOp(SST::Event *ev) {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
     if (blocked == true) {
         blocked = false;
-        cpulink->send(event);
-        releaseBus(event);
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid);
+        cpulink->send(fevent);
+        releaseBus(fevent);
     } else {
         handleBusEvent(event);
     }
-    // delete ev;
+    delete ev;
 }
 
 void cache::handleBusEvent(CacheEvent *event) {
     CacheLine_t *line = lookupCache(event->addr);
-    printf("Cache received event from bus %d %d\n", cacheId, event->pid);
+    // printf("Cache received event from bus %d %d\n", cacheId, event->pid);
     CacheEvent *busResponse;
     if (line) {
         switch (event->event_type) {
@@ -164,7 +165,7 @@ void cache::handleBusEvent(CacheEvent *event) {
         busResponse->addr = event->addr;
         busResponse->pid = cacheId;
     }
-    printf("Sending bus response %lx %lu %lu\n", busResponse->addr, busResponse->event_type, busResponse->pid);
+    // printf("Sending bus response %lx %lu %lu\n", busResponse->addr, busResponse->event_type, busResponse->pid);
     buslink->send(busResponse);
 }
 
@@ -306,7 +307,7 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
     line.dirty = true;
     line.timestamp = timestamp;
 
-    printf("Request for bus from cache %lu\n", cacheId);
+    // printf("Request for bus from cache %lu\n", cacheId);
     acquireBus(event);
 }
 
@@ -449,11 +450,11 @@ size_t cache::logFunc(size_t num) {
 
 void cache::acquireBus(CacheEvent* event) {
     // Build the arbiter event and request for bus
-    printf("Building arb event. pid: %d\n", event->pid);
+    // printf("Building arb event. pid: %d\n", event->pid);
     nextArbEvent = new ArbEvent(ARB_EVENT_TYPE::AC, event->pid);
-    printf("Sending arb event\n");
+    // printf("Sending arb event\n");
     arblink->send(nextArbEvent);
-    printf("Sent arb event\n");
+    // printf("Sent arb event\n");
 }
 
 void cache::releaseBus(CacheEvent* event) {

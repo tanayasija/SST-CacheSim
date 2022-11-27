@@ -99,8 +99,9 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
         primaryComponentOKToEndSim(); 
     }
-	printf("generator received event with addr: %llx\n", cacheEvent->addr);
-	printf("now sending new event\n");
+	// printf("generator received event with addr: %llx\n", cacheEvent->addr);
+    size_t nstime = getCurrentSimTimeNano();
+	printf("now sending new event proc %lu at time %lu\n", generatorID, nstime);
 	sendEvent();
 }
 
@@ -111,7 +112,7 @@ void XTSimGenerator::sendEvent(){
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
 	ev->pid = eventList[offset].pid;
-	printf("sending %lu\n", offset);
+	printf("sending %lu proc %d\n", offset, generatorID);
 	link->send(ev);
 	offset++;
 }

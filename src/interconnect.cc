@@ -86,21 +86,22 @@ void XTSimBus::handleEvent(SST::Event* ev){
 			readyForNext = true;
 		}
 	}
+    delete ev;
 }
 
 void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
 	for(int i = 0; i < processorNum; ++i){
 		if(i == pidToFilter) continue;
+        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid);
         printf("Broadcast event to cache %d %lx\n", i, ev->addr);
-		links[i]->send(ev);
+		links[i]->send(bcacheEvent);
 	}
 }
 
 // return the transaction resp to launching processor
 void XTSimBus::sendEvent(pid_t pid, CacheEvent* ev){
-	// TODO: how to tackle spurious wakeup
-	// cv.wait(mut);
-	links[pid]->send(ev);
+    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid);
+	links[pid]->send(bcacheEvent);
 }
 
 
