@@ -99,7 +99,7 @@ private:
 
 	int launcherPid;
 
-	int maxTransactionsNum;
+	size_t maxBusTransactions;
 
 	size_t latestTransaction;
 

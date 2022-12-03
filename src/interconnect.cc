@@ -47,7 +47,7 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
     // bool found;
     // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
 	processorNum = params.find<size_t>("processorNum");
-	maxTransactionsNum = params.find<size_t>("maxBusTransactions");
+	maxBusTransactions = params.find<size_t>("maxBusTransactions");
 
     // This parameter controls how big the messages are
     // If the user didn't set it, have the parameter default to 16 (bytes)

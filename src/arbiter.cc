@@ -46,6 +46,7 @@ XTSimArbiter::XTSimArbiter(ComponentId_t id, Params &params) : Component(id) {
     // Get parameter from the Python input
     // bool found;
     processorNum = params.find<size_t>("processorNum");
+	maxBusTransactions = params.find<size_t>("maxBusTransactions");
 	int arbPolicyInt = params.find<int>("arbPolicy");
 	if(arbPolicyInt == 0){
 		arbPolicy = ArbPolicy::FIFO;
@@ -109,13 +110,13 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 	if(arbPolicy == ArbPolicy::FIFO){
 		printf("AC\n");
 		fifoQueue.push(*arbEvent);
-		if(fifoQueue.size() == 1){
+		if(fifoQueue.size() < maxBusTransactions){
 			sendEvent();
 		}
 	}
 	else if(arbPolicy == ArbPolicy::RR){
 		rrList.push_back(*arbEvent);
-		if(rrList.size() == 1){
+		if(rrList.size() < maxBusTransactions){
 			sendEvent();
 		}
 	}

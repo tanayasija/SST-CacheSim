@@ -100,6 +100,9 @@ private:
 	// number of processors
 	size_t processorNum;
 
+	// max request on-the-flight
+	size_t maxBusTransactions;
+
 	// ArbPolicy
 	ArbPolicy arbPolicy;
 
