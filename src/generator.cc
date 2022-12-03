@@ -44,6 +44,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
     out = new Output("", 1, 0, Output::STDOUT);
     generatorID = params.find<size_t>("generatorID");
     traceFilePath = params.find<string>("traceFilePath");
+	maxOutstandingReq = params.find<size_t>("maxOutstandingReq");
 
     // Tell the simulation not to end until we're ready
     registerAsPrimaryComponent();
@@ -83,21 +84,23 @@ void XTSimGenerator::readFromTrace() {
 		ss >> addr;
 		// if it's a read trace
 		if(line.find('R') != string::npos){
-			CacheEvent event(EVENT_TYPE::PR_RD, addr, generatorID);
+			CacheEvent event(EVENT_TYPE::PR_RD, addr, generatorID, eventList.size());
 			eventList.push_back(event);
 		}else{ // a write trace
-			CacheEvent event(EVENT_TYPE::PR_WR, addr, generatorID);
+			CacheEvent event(EVENT_TYPE::PR_WR, addr, generatorID, eventList.size());
 			eventList.push_back(event);
 		}
 		// printf("[readFromTrace] one event added\n");
     }
 }
 
+// the end of instruction's lifecycle
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
     if (offset == eventList.size()) {
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
         primaryComponentOKToEndSim(); 
+		return ;
     }
 	// printf("generator received event with addr: %llx\n", cacheEvent->addr);
     size_t nstime = getCurrentSimTimeNano();
@@ -106,13 +109,13 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
 }
 
 void XTSimGenerator::sendEvent(){
-	printf("ready to send event. offset:%d\n", offset);
+	printf("ready to send event. offset:%zu\n", offset);
 	CacheEvent* ev = new CacheEvent;
-    printf("Addr %llx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
+    printf("Addr %zx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
 	ev->pid = eventList[offset].pid;
-	printf("sending %lu proc %d\n", offset, generatorID);
+	printf("sending %lu proc %zu\n", offset, generatorID);
 	link->send(ev);
 	offset++;
 }
@@ -126,7 +129,8 @@ bool XTSimGenerator::clockTic( Cycle_t cycleCount)
 {
     if(!started){
 		started = true;
-		sendEvent();
+		while(offset < maxOutstandingReq)
+			sendEvent();
 	}
 	return true;
 }

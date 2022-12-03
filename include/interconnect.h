@@ -4,6 +4,7 @@
 #include <sst/core/component.h>
 #include <sst/core/link.h>
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <stdio.h>
 // #include <condition_variable>
@@ -12,6 +13,7 @@
 
 using std::vector;
 using std::string;
+using std::unordered_map;
 
 
 namespace SST {
@@ -87,6 +89,7 @@ private:
 
     // Links
     vector<SST::Link*> links;
+	unordered_map<size_t, vector<CacheEvent>> transactionsMap;
 
 	size_t processorNum;
 
@@ -95,6 +98,10 @@ private:
 	int respCounter = 0;
 
 	int launcherPid;
+
+	int maxTransactionsNum;
+
+	size_t latestTransaction;
 
 	bool readyForNext = true;
 

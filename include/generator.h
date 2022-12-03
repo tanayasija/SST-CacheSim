@@ -93,6 +93,8 @@ private:
 
 	vector<CacheEvent> eventList;
 
+	size_t maxOutstandingReq;
+
 	// event offset
 	size_t offset = 0;
 

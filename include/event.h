@@ -27,12 +27,13 @@ class CacheEvent : public SST::Event
 public:
     // Constructor
 	CacheEvent() : SST::Event() { }
-    CacheEvent(EVENT_TYPE et, size_t ad, pid_t pid) : SST::Event(), event_type(et), addr(ad), pid(pid) { }
+    CacheEvent(EVENT_TYPE et, size_t ad, pid_t pid, size_t eventNum) : SST::Event(), event_type(et), addr(ad), pid(pid), event_num(eventNum) { }
     
     // data members
 	EVENT_TYPE event_type;
     size_t addr;
     pid_t pid;
+	size_t event_num; // TODO: fill this number from generator
 
     // Events must provide a serialization function that serializes
     // all data members of the event
@@ -41,6 +42,7 @@ public:
 		ser & event_type;
         ser & addr;
 		ser & pid;
+		ser & event_num;
     }
 
     // Register this event as serializable

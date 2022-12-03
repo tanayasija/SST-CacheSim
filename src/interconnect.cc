@@ -47,6 +47,7 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
     // bool found;
     // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
 	processorNum = params.find<size_t>("processorNum");
+	maxTransactionsNum = params.find<size_t>("maxBusTransactions");
 
     // This parameter controls how big the messages are
     // If the user didn't set it, have the parameter default to 16 (bytes)
@@ -64,6 +65,8 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 		links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}
+
+	latestTransaction = 0;
 }
 
 void XTSimBus::handleEvent(SST::Event* ev){
@@ -92,7 +95,7 @@ void XTSimBus::handleEvent(SST::Event* ev){
 void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
 	for(int i = 0; i < processorNum; ++i){
 		if(i == pidToFilter) continue;
-        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid);
+        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->event_num);
         printf("Broadcast event to cache %d %lx\n", i, ev->addr);
 		links[i]->send(bcacheEvent);
 	}
@@ -100,7 +103,7 @@ void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
 
 // return the transaction resp to launching processor
 void XTSimBus::sendEvent(pid_t pid, CacheEvent* ev){
-    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid);
+    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->event_num);
 	links[pid]->send(bcacheEvent);
 }
 
