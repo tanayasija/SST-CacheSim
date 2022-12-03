@@ -50,7 +50,11 @@ public:
     )
     
     // Optional since there is nothing to document - see statistics example for more info
-    SST_ELI_DOCUMENT_STATISTICS( )
+    // Document the statistic that this component provides
+    // { "statistic_name", "description", "units", enable_level }
+    SST_ELI_DOCUMENT_STATISTICS( 
+        {"UINT64_statistic",  "number of intructions generated", "unitless", 3}
+    )
 
     // Optional since there is nothing to document - see SubComponent examples for more info
     SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS( )
@@ -108,6 +112,9 @@ private:
     SST::Link* link;
 
 	bool started = false;
+
+	/* statistics */
+	Statistic<uint64_t>* stat_inst_cnt;
 };
 } // namespace XTSimGeneratorSpace
 } // namespace SST
