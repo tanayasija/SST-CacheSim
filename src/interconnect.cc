@@ -47,7 +47,7 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
     // bool found;
     // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
 	processorNum = params.find<size_t>("processorNum");
-	maxBusTransactions = params.find<size_t>("maxBusTransactions");
+	// maxBusTransactions = params.find<size_t>("maxBusTransactions");
 
     // This parameter controls how big the messages are
     // If the user didn't set it, have the parameter default to 16 (bytes)
@@ -65,11 +65,35 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 		links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
 		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
 	}
+	memLink = configureLink("port", new Event::Handler<XTSimBus>(this, &XTSimBus::handleMemEvent));
 
 	latestTransaction = 0;
 }
 
 void XTSimBus::handleEvent(SST::Event* ev){
+	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
+	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+	if(processorNum == 1){
+		sendEvent(cacheEvent->pid, cacheEvent);
+		return;
+	}
+
+	if(readyForNext){
+		readyForNext = false;
+		launcherPid = cacheEvent->pid;
+		broadcast(cacheEvent->pid, cacheEvent);
+	}else{
+		respCounter ++;
+		if(respCounter == processorNum - 1){
+			sendEvent(launcherPid, cacheEvent);
+			respCounter = 0;
+			readyForNext = true;
+		}
+	}
+    delete ev;
+}
+
+void XTSimBus::handleMemEvent(SST::Event* ev){
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
 	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
 	if(processorNum == 1){

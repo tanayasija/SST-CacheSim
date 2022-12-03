@@ -13,10 +13,12 @@ libxtsim_la_SOURCES = \
 	include/cache.h \
     include/generator.h \
     include/interconnect.h \
+    include/memory.h \
     src/arbiter.cc \
     src/cache.cc \
     src/interconnect.cc \
-    src/generator.cc
+    src/generator.cc \
+    src/memory.cc 
 
 deprecated_libxtsim_sources =
 

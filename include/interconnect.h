@@ -81,6 +81,8 @@ private:
 	// event handler
 	void handleEvent(SST::Event* ev);
 
+	void handleMemEvent(SST::Event* ev);
+
 	// broadcast
 	void broadcast(size_t pidToFilter, CacheEvent* ev);
 
@@ -89,6 +91,7 @@ private:
 
     // Links
     vector<SST::Link*> links;
+	SST::Link* memLink;
 	unordered_map<size_t, vector<CacheEvent>> transactionsMap;
 
 	size_t processorNum;
@@ -99,7 +102,7 @@ private:
 
 	int launcherPid;
 
-	size_t maxBusTransactions;
+	// size_t maxBusTransactions;
 
 	size_t latestTransaction;
 
