@@ -95,10 +95,14 @@ private:
 	unordered_map<size_t, vector<CacheEvent>> transactionsMap;
 
 	size_t processorNum;
+	size_t memoryAccessTime;
 
-	size_t latestTransaction;
+	/* statistics */
+	size_t totalTraffic; // num of send & recv happened on the bus
+	size_t reqTraffic;
+	size_t respTraffic;
+	size_t memoryTraffic;
 
-	bool readyForNext = true;
 };
 } // namespace xtsim
 } // namespace SST

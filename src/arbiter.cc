@@ -46,6 +46,7 @@ XTSimArbiter::XTSimArbiter(ComponentId_t id, Params &params) : Component(id) {
     // Get parameter from the Python input
     // bool found;
     processorNum = params.find<size_t>("processorNum");
+	grantsNum = vector<size_t>(processorNum, 0);
 	maxBusTransactions = params.find<size_t>("maxBusTransactions");
 	int arbPolicyInt = params.find<int>("arbPolicy");
 	if(arbPolicyInt == 0){
@@ -126,12 +127,14 @@ void XTSimArbiter::sendEvent(){
 	printf("arb sendEvent\n");
 	if(arbPolicy == ArbPolicy::FIFO){
 		ArbEvent& ev = fifoQueue.front();
+		grantsNum[ev.pid] ++;
 		printf("pid: %d\n", ev.pid);
 		links[ev.pid]->send(&ev);
 		printf("[arbiter]: granted access to %d\n", ev.pid);
 	}
 	else{
 		ArbEvent& ev = *acIter;
+		grantsNum[ev.pid] ++;
 		links[ev.pid]->send(&ev);
 		printf("[arbiter]: granted access to %d\n", ev.pid);
 	}
@@ -143,4 +146,8 @@ void XTSimArbiter::sendEvent(){
 XTSimArbiter::~XTSimArbiter()
 {
     delete out;
+	string content;
+	for(auto& num : grantsNum)
+		content += std::to_string(num) + " ";
+	printf("[arbiter-stat]: final granting statistics:\n %s\n", content.c_str());
 }

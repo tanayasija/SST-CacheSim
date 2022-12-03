@@ -99,6 +99,7 @@ private:
 
 	// number of processors
 	size_t processorNum;
+	vector<size_t> grantsNum;
 
 	// max request on-the-flight
 	size_t maxBusTransactions;
@@ -108,7 +109,6 @@ private:
 
     // Links
 	vector<SST::Link*> links;
-	
 };
 
 }
