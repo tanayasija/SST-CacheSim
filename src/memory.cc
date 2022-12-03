@@ -36,10 +36,6 @@ XTSimMemory::XTSimMemory(ComponentId_t id, Params &params) : Component(id) {
     // read configuration
     out = new Output("", 1, 0, Output::STDOUT);
 
-    // Tell the simulation not to end until we're ready
-    registerAsPrimaryComponent();
-    primaryComponentDoNotEndSim();
-
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
     link = configureLink("port", new Event::Handler<XTSimMemory>(this, &XTSimMemory::handleEvent));

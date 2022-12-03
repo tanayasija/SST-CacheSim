@@ -11,6 +11,8 @@
 using std::vector;
 using std::string;
 
+const size_t MAX_EVENT_NUM = 1ull << 48;
+
 
 namespace SST {
 namespace xtsim {
@@ -76,6 +78,10 @@ private:
 
 	// event handler
 	void handleEvent(SST::Event* ev);
+	
+	size_t getNextTransactionID(){
+		return generatorID * MAX_EVENT_NUM + eventList.size();
+	}
 
     // Parameters
     // vector< curTrace;

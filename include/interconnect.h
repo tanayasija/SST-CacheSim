@@ -96,20 +96,9 @@ private:
 
 	size_t processorNum;
 
-	// response counter. A transaction is completed when respCounter = processorNum - 1.
-	// reset after every transaction
-	int respCounter = 0;
-
-	int launcherPid;
-
-	// size_t maxBusTransactions;
-
 	size_t latestTransaction;
 
 	bool readyForNext = true;
-
-	// std::condition_variable cv;
-	// std::mutex mut;
 };
 } // namespace xtsim
 } // namespace SST

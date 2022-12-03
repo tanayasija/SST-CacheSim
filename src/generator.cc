@@ -17,7 +17,6 @@
 // for ALL SST implementation files
 #include <stdio.h>
 #include "sst_config.h"
-
 #include "./include/generator.h"
 
 using namespace SST;
@@ -84,10 +83,10 @@ void XTSimGenerator::readFromTrace() {
 		ss >> addr;
 		// if it's a read trace
 		if(line.find('R') != string::npos){
-			CacheEvent event(EVENT_TYPE::PR_RD, addr, generatorID, eventList.size());
+			CacheEvent event(EVENT_TYPE::PR_RD, addr, generatorID, getNextTransactionID());
 			eventList.push_back(event);
 		}else{ // a write trace
-			CacheEvent event(EVENT_TYPE::PR_WR, addr, generatorID, eventList.size());
+			CacheEvent event(EVENT_TYPE::PR_WR, addr, generatorID, getNextTransactionID());
 			eventList.push_back(event);
 		}
 		// printf("[readFromTrace] one event added\n");
@@ -115,6 +114,7 @@ void XTSimGenerator::sendEvent(){
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
 	ev->pid = eventList[offset].pid;
+	ev->transactionId = eventList[offset].transactionId;
 	printf("sending %lu proc %zu\n", offset, generatorID);
 	link->send(ev);
 	offset++;

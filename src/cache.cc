@@ -121,7 +121,7 @@ void cache::handleBusOp(SST::Event *ev) {
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
     if (blocked == true) {
         blocked = false;
-        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->event_num);
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId);
         cpulink->send(fevent);
         releaseBus(fevent);
     } else {

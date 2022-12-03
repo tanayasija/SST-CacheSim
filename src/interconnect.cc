@@ -15,13 +15,16 @@
 
 // This include is ***REQUIRED***
 // for ALL SST implementation files
-#include <stdio.h>
-#include "sst_config.h"
-
 #include "./include/interconnect.h"
+#include "sst_config.h"
+#include <stdio.h>
 
 using namespace SST;
 using namespace SST::xtsim;
+
+static size_t getPid(size_t tid) {
+    return tid >> 48;
+}
 
 /*
  * During construction the XTSimGenerator component should prepare for simulation
@@ -45,97 +48,87 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
 
     // Get parameter from the Python input
     // bool found;
-    // eventsToSend = params.find<int64_t>("eventsToSend", 0, found);
-	processorNum = params.find<size_t>("processorNum");
-	// maxBusTransactions = params.find<size_t>("maxBusTransactions");
-
-    // This parameter controls how big the messages are
-    // If the user didn't set it, have the parameter default to 16 (bytes)
-    // eventSize = params.find<int64_t>("eventSize", 16);
-
-    // Tell the simulation not to end until we're ready
-    // registerAsPrimaryComponent();
-    // primaryComponentDoNotEndSim();
+    processorNum = params.find<size_t>("processorNum");
+    // maxBusTransactions = params.find<size_t>("maxBusTransactions");
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
-	links.resize(processorNum);
-	for(int i = 0 ;i < processorNum; ++i){
-		string portName = "busPort_" + std::to_string(i);
-		links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
-		sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
-	}
-	memLink = configureLink("port", new Event::Handler<XTSimBus>(this, &XTSimBus::handleMemEvent));
+    links.resize(processorNum);
+    for (int i = 0; i < processorNum; ++i) {
+        string portName = "busPort_" + std::to_string(i);
+        links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
+        sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
+    }
+    memLink = configureLink("port", new Event::Handler<XTSimBus>(this, &XTSimBus::handleMemEvent));
 
-	latestTransaction = 0;
+    latestTransaction = 0;
 }
 
-void XTSimBus::handleEvent(SST::Event* ev){
-	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
-	if(processorNum == 1){
-		sendEvent(cacheEvent->pid, cacheEvent);
-		return;
-	}
+void XTSimBus::handleEvent(SST::Event *ev) {
+    CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
+    printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+    if (processorNum == 1) {
+        sendEvent(cacheEvent->pid, cacheEvent);
+        return;
+    }
 
-	if(readyForNext){
-		readyForNext = false;
-		launcherPid = cacheEvent->pid;
-		broadcast(cacheEvent->pid, cacheEvent);
-	}else{
-		respCounter ++;
-		if(respCounter == processorNum - 1){
-			sendEvent(launcherPid, cacheEvent);
-			respCounter = 0;
-			readyForNext = true;
-		}
-	}
+    size_t tid = cacheEvent->transactionId;
+    if (!transactionsMap.count(tid)) {
+        transactionsMap[tid] = {*cacheEvent};
+        broadcast(cacheEvent->pid, cacheEvent);
+    } else {
+        transactionsMap[tid].push_back(*cacheEvent);
+        if (transactionsMap[tid].size() == processorNum) {
+            auto reqEvent = transactionsMap[tid][0];
+            if (reqEvent.event_type == EVENT_TYPE::BUS_UPGR) {
+                sendEvent(getPid(tid), cacheEvent);
+				transactionsMap.erase(tid);
+            } else { // for BUS_RD and BUS_RDX, check if there is non-empty response from other caches
+                for (int i = 1; i < processorNum; ++i) {
+                    auto respEvent = transactionsMap[tid][i];
+                    if (respEvent.event_type != EVENT_TYPE::NOT_SHARED) {
+                        sendEvent(getPid(tid), cacheEvent);
+						transactionsMap.erase(tid);
+						delete ev;
+						return;
+                    }
+                }
+				// otherwise, read from memory
+				memLink->send(&reqEvent);
+				transactionsMap.erase(tid);
+            }
+        }
+    }
     delete ev;
 }
 
-void XTSimBus::handleMemEvent(SST::Event* ev){
-	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-	printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
-	if(processorNum == 1){
-		sendEvent(cacheEvent->pid, cacheEvent);
-		return;
-	}
-
-	if(readyForNext){
-		readyForNext = false;
-		launcherPid = cacheEvent->pid;
-		broadcast(cacheEvent->pid, cacheEvent);
-	}else{
-		respCounter ++;
-		if(respCounter == processorNum - 1){
-			sendEvent(launcherPid, cacheEvent);
-			respCounter = 0;
-			readyForNext = true;
-		}
-	}
+// fall back to memory access
+void XTSimBus::handleMemEvent(SST::Event *ev) {
+    CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
+    printf("bus heard back from memory with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+    sendEvent(cacheEvent->pid, cacheEvent);
     delete ev;
 }
 
-void XTSimBus::broadcast(size_t pidToFilter, CacheEvent* ev){
-	for(int i = 0; i < processorNum; ++i){
-		if(i == pidToFilter) continue;
-        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->event_num);
+void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {
+    for (int i = 0; i < processorNum; ++i) {
+        if (i == pidToFilter)
+            continue;
+        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId);
         printf("Broadcast event to cache %d %lx\n", i, ev->addr);
-		links[i]->send(bcacheEvent);
-	}
+        links[i]->send(bcacheEvent);
+    }
 }
 
 // return the transaction resp to launching processor
-void XTSimBus::sendEvent(pid_t pid, CacheEvent* ev){
-    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->event_num);
-	links[pid]->send(bcacheEvent);
+void XTSimBus::sendEvent(pid_t pid, CacheEvent *ev) {
+    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId);
+    links[pid]->send(bcacheEvent);
 }
-
 
 /*
  * Destructor, clean up our output
  */
-XTSimBus::~XTSimBus()
-{
+XTSimBus::~XTSimBus() {
     delete out;
 }
