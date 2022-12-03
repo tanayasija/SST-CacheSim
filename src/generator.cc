@@ -103,7 +103,9 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
     }
 	// printf("generator received event with addr: %llx\n", cacheEvent->addr);
     size_t nstime = getCurrentSimTimeNano();
-	printf("now sending new event proc %lu at time %lu\n", generatorID, nstime);
+	size_t ustime = getCurrentSimTimeMicro();
+	size_t mstime = getCurrentSimTimeMilli();
+	printf("now sending new event proc %lu at time %lu:%lu:%lu\n", generatorID, mstime, ustime,nstime);
 	sendEvent();
 }
 
