@@ -34,6 +34,7 @@ public:
     size_t addr;
     pid_t pid;
 	size_t transactionId;
+    size_t cacheLineIdx;
 
     // Events must provide a serialization function that serializes
     // all data members of the event

@@ -56,7 +56,6 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // Logical timestamp equal to local counter of requests for this processor
     timestamp = 0;
     rrCounter.resize(nsets);
-    blocked = false;
 
     // configure our link with a callback function that will be called whenever an event arrives
     // Callback function is optional, if not provided then component must poll the link
@@ -117,12 +116,38 @@ void cache::handleProcessorEvent(CacheEvent* event) {
     }
 }
 
+void cache::handleOutRequest(CacheEvent *event) {
+    for (size_t i = 0; i < outRequest.size(); i++) {
+        if (event->event_type == outRequest[i]->event->event_type && event->pid == outRequest[i]->event->pid &&
+            event->addr == outRequest[i]->event->addr) {
+            
+            // Evict the line here itself
+            CacheLine_t& line = evictLine(event);
+            if (event->event_type == EVENT_TYPE::BUS_RD) {
+                line.state = CacheState_t::S;
+                line.dirty = false;
+            } else {
+                line.state = CacheState_t::M;
+                line.dirty = true;
+            }
+            line.timestamp = timestamp;
+
+            // Send back all aliased events back to CPU
+            for (size_t j = 0; j < outRequest[i]->alias.size(); j++) {
+                cpulink->send(outRequest[i]->alias[j]);
+            }
+            outRequest.erase(outRequest.begin() + i, outRequest.begin()+ i + 1);
+            break;
+        }
+    }
+}
+
 void cache::handleBusOp(SST::Event *ev) {
-    CacheEvent *event = dynamic_cast<CacheEvent*>(ev);
-    if (blocked == true) {
-        blocked = false;
+    CacheEvent *event = dynamic_cast<CacheEvent*>(ev);    
+    if (event->pid == cacheId) {
         CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId);
         cpulink->send(fevent);
+        handleOutRequest(event);
         releaseBus(fevent);
     } else {
         handleBusEvent(event);
@@ -172,8 +197,9 @@ void cache::handleBusEvent(CacheEvent *event) {
 void cache::handleArbOp(SST::Event *ev) {
     // A message from Arbiter indicates we have control of the interconnect
     // Forward the coherency request on interconnect
-    blocked = true;
-    buslink->send(nextBusEvent);
+    CacheEvent *eventToBus = requestQueue[0];
+    requestQueue.erase(requestQueue.begin());
+    buslink->send(eventToBus);
     // delete ev;
 }
 
@@ -260,15 +286,23 @@ void cache::handleReadMissMsi(CacheEvent* event) {
     nextBusEvent->event_type = EVENT_TYPE::BUS_RD;
     nextBusEvent->addr = event->addr;
     nextBusEvent->pid = event->pid;
+    nextBusEvent->transactionId = event->transactionId;
+    nextBusEvent->cacheLineIdx = event->addr / blockSize;
 
-    // Evict the line here itself
-    CacheLine_t& line = evictLine(event);
-    line.state = CacheState_t::S;
-    line.dirty = false;
-    line.timestamp = timestamp;
+    // Evict the line later when the response is received
 
     // Build the arbiter event and request for bus
-    acquireBus(event);
+    for (size_t i = outRequest.size() - 1; i >= 0; i++) {
+        if (outRequest[i]->event->cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            outRequest[i]->alias.push_back(nextBusEvent);
+            return;
+        }
+    }
+    OutRequest_t *outreq = new OutRequest_t;
+    outreq->event = nextBusEvent;
+    outRequest.push_back(outreq);
+    requestQueue.push_back(nextBusEvent);
+    acquireBus(nextBusEvent);
 }
 
 void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t* line) {
@@ -286,6 +320,7 @@ void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t* line) {
         line->timestamp = timestamp;
 
         // Build the arbiter event and request for bus
+        requestQueue.push_back(nextBusEvent);
         acquireBus(event);
     } else if (line->state == CacheState_t::I) {
         // This state is not possible in a read hit
@@ -301,14 +336,24 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
     nextBusEvent->addr = event->addr;
     nextBusEvent->pid = event->pid;
 
-    // Evict the line here itself
-    CacheLine_t& line = evictLine(event);
-    line.state = CacheState_t::M;
-    line.dirty = true;
-    line.timestamp = timestamp;
+    // Evict the line later after the response is received
 
-    // printf("Request for bus from cache %lu\n", cacheId);
-    acquireBus(event);
+    // Build the arbiter event and request for bus
+    for (size_t i = outRequest.size() - 1; i >= 0; i++) {
+        if (outRequest[i]->event->cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            if (outRequest[i]->event->event_type == EVENT_TYPE::BUS_RDX) {
+                outRequest[i]->alias.push_back(nextBusEvent);
+                return;
+            } else {
+                break;
+            }
+        }
+    }
+    OutRequest_t *outreq = new OutRequest_t;
+    outreq->event = nextBusEvent;
+    outRequest.push_back(outreq);
+    requestQueue.push_back(nextBusEvent);
+    acquireBus(nextBusEvent);
 }
 
 /**

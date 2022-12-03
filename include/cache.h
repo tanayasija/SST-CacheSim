@@ -34,6 +34,7 @@
 #include <sst/core/component.h>
 #include <sst/core/link.h>
 #include "event.h"
+#include <queue>
 
 
 namespace SST {
@@ -55,6 +56,11 @@ enum class ReplacementPolicy_t {
     RR,
     LRU,
     MRU
+};
+
+struct OutRequest_t {
+    CacheEvent *event;
+    std::vector<CacheEvent*> alias;
 };
 
 typedef struct CacheLine_t {
@@ -126,6 +132,7 @@ private:
     void handleBusOp(SST::Event *ev);
     void handleBusEvent(CacheEvent *ev);
     void handleArbOp(SST::Event *ev);
+    void handleOutRequest(CacheEvent *event);
 
     // Basic cache wrapper functions
     void handleReadHit(CacheEvent* ev, CacheLine_t* line);
@@ -173,6 +180,8 @@ private:
     size_t timestamp;
     bool blocked;
     std::vector<std::vector<CacheLine_t>> cacheLines;
+    std::vector<CacheEvent *> requestQueue;
+    std::vector<OutRequest_t *> outRequest;
     ReplacementPolicy_t rpolicy;
     CoherencyProtocol_t cprotocol;
 

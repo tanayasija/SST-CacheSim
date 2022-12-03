@@ -82,7 +82,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
 		respTraffic ++;
         transactionsMap[tid].push_back(*cacheEvent);
         if (transactionsMap[tid].size() == processorNum) {
-            auto reqEvent = transactionsMap[tid][0];
+            auto reqEvent = transactionsMap[tid][0]; // Entry zero is the request
             if (reqEvent.event_type == EVENT_TYPE::BUS_UPGR) {
                 sendEvent(getPid(tid), &reqEvent);
 				transactionsMap.erase(tid);
