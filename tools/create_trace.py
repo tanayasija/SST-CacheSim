@@ -16,8 +16,8 @@ out_dir = args.out_dir
 
 trace_files = []
 reexp = []
-for i in range(num_threads):
-    f = open(f"{out_dir}/{trace_name}_{str(i)}.txt", "w")
+for i in range(1, num_threads + 1):
+    f = open(f"{out_dir}/{trace_name}_{str(i-1)}.txt", "w")
     trace_files.append(f)
     reexp.append(re.compile(f"threadId: {str(i)}"))
 
@@ -27,8 +27,8 @@ trace_file.close()
 
 for line in trace:
     # print(line)
-    for i in range(num_threads):
-        if reexp[i].match(line):
-            trace_files[i].write(f"{line}\n")
+    for i in range(1, num_threads + 1):
+        if reexp[i-1].match(line):
+            trace_files[i-1].write(f"{line}\n")
 
 
