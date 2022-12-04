@@ -66,6 +66,11 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     // Make sure we successfully configured the links
     // Failure usually means the user didn't connect the port in the input file
     // sst_assert(cpulink, CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
+
+    nhits = registerStatistic<uint32_t>("hits");
+    nmisses = registerStatistic<uint32_t>("misses");
+    nevictions = registerStatistic<uint32_t>("evictions");
+    ninvalidations = registerStatistic<uint32_t>("invalidations");
 }
 
 /*
@@ -98,6 +103,7 @@ void cache::handleProcessorOp(SST::Event *ev)
 void cache::handleProcessorEvent(CacheEvent* event) {
     CacheLine_t* line = lookupCache(event->addr);
     if (line != nullptr) { // Cache hit
+        nhits->addData(1);
         if (event->event_type == EVENT_TYPE::PR_RD) {
             handleReadHit(event, line);
         } else if (event->event_type == EVENT_TYPE::PR_WR) {
@@ -106,6 +112,7 @@ void cache::handleProcessorEvent(CacheEvent* event) {
             out->fatal(CALL_INFO, -1, "Error! Bad Event Type received by %s!\n", getName().c_str());
         }
     } else { // Cache miss
+        nmisses->addData(1);
         if (event->event_type == EVENT_TYPE::PR_RD) {
             handleReadMiss(event);
         } else if (event->event_type == EVENT_TYPE::PR_WR) {
@@ -122,6 +129,7 @@ void cache::handleOutRequest(CacheEvent *event) {
             event->addr == outRequest[i]->event->addr) {
             
             // Evict the line here itself
+            nevictions->addData(1);
             CacheLine_t& line = evictLine(event);
             if (event->event_type == EVENT_TYPE::BUS_RD) {
                 line.state = CacheState_t::S;
@@ -168,6 +176,7 @@ void cache::handleBusEvent(CacheEvent *event) {
                 busResponse->pid = cacheId;
                 break;
             case EVENT_TYPE::BUS_RDX:
+                ninvalidations->addData(1);
                 line->valid = false;
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
@@ -175,6 +184,7 @@ void cache::handleBusEvent(CacheEvent *event) {
                 busResponse->pid = cacheId;
                 break;
             case EVENT_TYPE::BUS_UPGR:
+                ninvalidations->addData(1);
                 line->valid = false;    
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;

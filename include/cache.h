@@ -112,7 +112,12 @@ public:
     )
     
     // Optional since there is nothing to document - see statistics example for more info
-    SST_ELI_DOCUMENT_STATISTICS( )
+    SST_ELI_DOCUMENT_STATISTICS(
+        {"hits", "Statistic that records unsigned 32-bit values", "unitless", 1},
+        {"misses", "Statistic that records unsigned 32-bit values", "unitless", 1},
+        {"evictions", "Statistic that records unsigned 32-bit values", "unitless", 1},
+        {"invalidations", "Statistic that records unsigned 32-bit values", "unitless", 1}
+     )
 
     // Optional since there is nothing to document - see SubComponent examples for more info
     SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS( )
@@ -195,6 +200,12 @@ private:
     SST::Link* cpulink;
     SST::Link* buslink;
     SST::Link* arblink;
+
+    // Statistics
+    Statistic<uint32_t>* nhits;
+    Statistic<uint32_t>* nmisses;
+    Statistic<uint32_t>* nevictions;
+    Statistic<uint32_t>* ninvalidations;
 };
 
 } // namespace simpleElementExample
