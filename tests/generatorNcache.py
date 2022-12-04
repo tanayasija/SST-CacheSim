@@ -11,17 +11,27 @@ trace_name = "sum_"
 
 bus = sst.Component("bus", "xtsim.XTSimBus")
 arbiter = sst.Component("arbiter", "xtsim.XTSimArbiter")
+memory = sst.Component("memory", "xtsim.XTSimMemory")
+
 
 arbiterParams = {
         "processorNum" : num_processors,    # Required parameter, error if not provided
-        "arbPolicy" : 0
+        "arbPolicy" : 0, 
+        "maxBusTransactions" : 8
 }
 arbiter.addParams(arbiterParams)
 
 busParams = {
         "processorNum" : num_processors,    # Required parameter, error if not provided
+        "memoryAccessTime" : 100 # unit: ns
 }
 bus.addParams(busParams)
+
+memParams = {}
+memory.addParams(memParams)
+
+memlink = sst.Link("memLink")
+memlink.connect( (bus, "port", "100ns"), (memory, "port", "100ns"))
 
 
 ### Parameterize the components.
@@ -40,7 +50,8 @@ for i in range(num_processors):
 
         generatorParams = {
                 "generatorID" : i,    # Required parameter, error if not provided
-                "traceFilePath" : "./traces/" + trace_name + str(i) + ".txt"
+                "traceFilePath" : "./traces/" + trace_name + str(i) + ".txt", 
+                "maxOutstandingReq" : 8
         }
         generator.addParams(generatorParams)
 
