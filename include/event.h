@@ -27,7 +27,8 @@ class CacheEvent : public SST::Event
 public:
     // Constructor
 	CacheEvent() : SST::Event() { }
-    CacheEvent(EVENT_TYPE et, size_t ad, pid_t pid, size_t transactionId) : SST::Event(), event_type(et), addr(ad), pid(pid), transactionId(transactionId) { }
+    CacheEvent(EVENT_TYPE et, size_t ad, pid_t pid, size_t transactionId, size_t cacheLineIdx = 0) : SST::Event(), event_type(et), 
+    addr(ad), pid(pid), transactionId(transactionId), cacheLineIdx(cacheLineIdx) { }
     
     // data members
 	EVENT_TYPE event_type;
@@ -44,6 +45,7 @@ public:
         ser & addr;
 		ser & pid;
 		ser & transactionId;
+        ser & cacheLineIdx;
     }
 
     // Register this event as serializable

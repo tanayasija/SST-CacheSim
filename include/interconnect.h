@@ -56,7 +56,7 @@ public:
         {"busPort_5",  "Link to another component", { "xtsim.CacheEvent", ""} },
         {"busPort_6",  "Link to another component", { "xtsim.CacheEvent", ""} },
         {"busPort_7",  "Link to another component", { "xtsim.CacheEvent", ""} },
-		{"port",  "Link to Memory", { "xtsim.CacheEvent", ""} }
+		{"memPort",  "Link to Memory", { "xtsim.CacheEvent", ""} }
     )
     
     // Optional since there is nothing to document - see statistics example for more info

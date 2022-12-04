@@ -60,16 +60,19 @@ XTSimBus::XTSimBus(ComponentId_t id, Params &params) : Component(id) {
         links[i] = configureLink(portName, new Event::Handler<XTSimBus>(this, &XTSimBus::handleEvent));
         sst_assert(links[i], CALL_INFO, -1, "Error in %s: Link configuration failed\n", getName().c_str());
     }
-    memLink = configureLink("port", new Event::Handler<XTSimBus>(this, &XTSimBus::handleMemEvent));
+    memLink = configureLink("memPort", new Event::Handler<XTSimBus>(this, &XTSimBus::handleMemEvent));
 }
 
 void XTSimBus::handleEvent(SST::Event *ev) {
-	totalTraffic ++;
+    // printf("Bus received event\n");
+	totalTraffic++;
     CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
-    printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+
+    // printf("bus received event with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
     if (processorNum == 1) {
 		reqTraffic ++;
         sendEvent(cacheEvent->pid, cacheEvent);
+        // delete ev;
         return;
     }
 
@@ -92,7 +95,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
                     if (respEvent.event_type != EVENT_TYPE::NOT_SHARED) {
                         sendEvent(getPid(tid), &reqEvent);
 						transactionsMap.erase(tid);
-						delete ev;
+                        // delete ev;
 						return;
                     }
                 }
@@ -104,7 +107,8 @@ void XTSimBus::handleEvent(SST::Event *ev) {
             }
         }
     }
-    delete ev;
+    // delete ev;
+    // printf("reaching the end of bus handleEvent. addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
 }
 
 // fall back to memory access
@@ -112,9 +116,9 @@ void XTSimBus::handleMemEvent(SST::Event *ev) {
 	totalTraffic ++;
 	memoryTraffic ++;
     CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
-    printf("bus heard back from memory with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
+    // printf("bus heard back from memory with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
     sendEvent(cacheEvent->pid, cacheEvent);
-    delete ev;
+    // delete ev;
 }
 
 void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {
@@ -123,17 +127,18 @@ void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {
             continue;
 		totalTraffic ++;
 		reqTraffic ++;
-        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId);
-        printf("Broadcast event to cache %d %lx\n", i, ev->addr);
+        CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId, ev->cacheLineIdx);
+        // printf("Broadcast event to cache %d %lx\n", i, ev->addr);
         links[i]->send(bcacheEvent);
     }
 }
 
 // return the transaction resp to launching processor
 void XTSimBus::sendEvent(pid_t pid, CacheEvent *ev) {
+    // printf("Bus sent response of event: %lx to pid: %d\n", ev->addr, pid);
 	totalTraffic ++;
 	respTraffic ++;
-    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId);
+    CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId, ev->cacheLineIdx);
     links[pid]->send(bcacheEvent);
 }
 

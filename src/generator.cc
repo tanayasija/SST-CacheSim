@@ -64,6 +64,9 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 
     // read all the events from file
 	readFromTrace();
+
+	offset = 0;
+	receiveCount = 0;
 }
 
 void XTSimGenerator::readFromTrace() {
@@ -97,12 +100,14 @@ void XTSimGenerator::readFromTrace() {
 
 // the end of instruction's lifecycle
 void XTSimGenerator::handleEvent(SST::Event* ev){
+	receiveCount++;
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-    if (offset == eventList.size()) {
+    if (receiveCount == eventList.size()) {
 		stat_inst_cnt->addData(offset);
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
+		printf("Generator %d exiting\n", generatorID);
         primaryComponentOKToEndSim(); 
-		return ;
+		return;
     }
 	// printf("generator received event with addr: %llx\n", cacheEvent->addr);
     size_t nstime = getCurrentSimTimeNano();

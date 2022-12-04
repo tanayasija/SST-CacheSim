@@ -202,10 +202,10 @@ private:
     SST::Link* arblink;
 
     // Statistics
-    Statistic<uint32_t>* nhits;
-    Statistic<uint32_t>* nmisses;
-    Statistic<uint32_t>* nevictions;
-    Statistic<uint32_t>* ninvalidations;
+    Statistic<uint64_t>* nhits;
+    Statistic<uint64_t>* nmisses;
+    Statistic<uint64_t>* nevictions;
+    Statistic<uint64_t>* ninvalidations;
 };
 
 } // namespace simpleElementExample

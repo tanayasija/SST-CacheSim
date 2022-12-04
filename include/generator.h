@@ -107,6 +107,7 @@ private:
 
 	// event offset
 	size_t offset = 0;
+    size_t receiveCount = 0;
 
     // Links
     SST::Link* link;
