@@ -95,6 +95,8 @@ private:
 	SST::Link* memLink;
 	unordered_map<size_t, vector<CacheEvent>> transactionsMap;
 
+    std::vector<CacheEvent*> eventsToBcast;
+
 	size_t processorNum;
 	size_t memoryAccessTime;
 

@@ -93,7 +93,7 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 	printf("arbiter received event with type: %d from pid:%d\n", arbEvent->event_type, arbEvent->pid);
 
 	ArbEvent *localArbEvent = new ArbEvent(arbEvent->event_type, arbEvent->pid);
-	delete ev;
+	delete arbEvent;
 	// if receiving a release event
 	if(localArbEvent->event_type == ARB_EVENT_TYPE::RL){
 		printf("RL\n");
@@ -135,17 +135,21 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 void XTSimArbiter::sendEvent(){
 	printf("arb sendEvent\n");
 	if(arbPolicy == ArbPolicy::FIFO){
-		ArbEvent& ev = fifoQueue.front();
-		grantsNum[ev.pid] ++;
-		printf("pid: %d\n", ev.pid);
-		links[ev.pid]->send(&ev);
-		printf("[arbiter]: granted access to %d\n", ev.pid);
+		ArbEvent *ev = new ArbEvent;
+		ev->pid = fifoQueue.front().pid;
+		ev->event_type = fifoQueue.front().event_type;
+		grantsNum[ev->pid] ++;
+		printf("pid: %d\n", ev->pid);
+		links[ev->pid]->send(ev);
+		printf("[arbiter]: granted access to %d\n", ev->pid);
 	}
 	else{
-		ArbEvent& ev = *acIter;
-		grantsNum[ev.pid] ++;
-		links[ev.pid]->send(&ev);
-		printf("[arbiter]: granted access to %d\n", ev.pid);
+		ArbEvent *ev = new ArbEvent;
+		ev->pid = acIter->pid;
+		ev->event_type = acIter->event_type;
+		grantsNum[ev->pid] ++;
+		links[ev->pid]->send(ev);
+		printf("[arbiter]: granted access to %d\n", ev->pid);
 	}
 }
 

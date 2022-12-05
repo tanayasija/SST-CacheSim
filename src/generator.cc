@@ -72,7 +72,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 void XTSimGenerator::readFromTrace() {
 	printf("[readFromTrace]\n");
     string line;
-	string leading = "threadId: " + std::to_string(generatorID);
+	string leading = "threadId: " + std::to_string(generatorID + 1);
 	std::ifstream infile(traceFilePath);
     while (getline(infile, line)) {
 		// skip other processors' lines
@@ -102,7 +102,7 @@ void XTSimGenerator::readFromTrace() {
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	receiveCount++;
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
-	delete ev;
+	delete cacheEvent;
     if (receiveCount == eventList.size()) {
 		stat_inst_cnt->addData(offset);
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
