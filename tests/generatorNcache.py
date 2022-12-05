@@ -17,7 +17,7 @@ memory = sst.Component("memory", "xtsim.XTSimMemory")
 arbiterParams = {
         "processorNum" : num_processors,    # Required parameter, error if not provided
         "arbPolicy" : 0, 
-        "maxBusTransactions" : 8
+        "maxBusTransactions" : 1
 }
 arbiter.addParams(arbiterParams)
 
@@ -31,8 +31,7 @@ memParams = {}
 memory.addParams(memParams)
 
 memlink = sst.Link("memLink")
-memlink.connect( (bus, "port", "100ns"), (memory, "port", "100ns"))
-
+memlink.connect( (bus, "memPort", "100ns"), (memory, "port", "100ns"))
 
 ### Parameterize the components.
 # Run 'sst-info simpleElementExample.example0' at the command line 
@@ -51,7 +50,7 @@ for i in range(num_processors):
         generatorParams = {
                 "generatorID" : i,    # Required parameter, error if not provided
                 "traceFilePath" : "./traces/" + trace_name + str(i) + ".txt", 
-                "maxOutstandingReq" : 8
+                "maxOutstandingReq" : 1
         }
         generator.addParams(generatorParams)
 
@@ -86,7 +85,10 @@ sst.setStatisticOutput("sst.statOutputConsole")
 
 # Enable statistics on both components
 sst.enableAllStatisticsForComponentType("xtsim.XTSimGenerator")
+sst.enableAllStatisticsForComponentType("xtsim.XTSimBus")
+sst.enableAllStatisticsForComponentType("xtsim.cache")
 
 # Because the link latency is ~1ns and the components send one event
 # per cycle on a 1GHz clock, the simulation time should be just over eventsToSend ns
 # The statistics output will change if eventSize is changed.
+
