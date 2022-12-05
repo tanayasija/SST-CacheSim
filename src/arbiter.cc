@@ -93,23 +93,26 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 	printf("arbiter received event with type: %d from pid:%d\n", arbEvent->event_type, arbEvent->pid);
 
 	ArbEvent *localArbEvent = new ArbEvent(arbEvent->event_type, arbEvent->pid);
-	// delete ev;
+	delete ev;
 	// if receiving a release event
 	if(localArbEvent->event_type == ARB_EVENT_TYPE::RL){
 		printf("RL\n");
 		if(arbPolicy == ArbPolicy::FIFO){
 			fifoQueue.pop();
 			if(fifoQueue.empty()) {
+				delete localArbEvent;
 				return;
 			} 
 		}
 		else{
 			getNext();
 			if(rrList.empty()) {
+				delete localArbEvent;
 				return;
 			}
 		}
 		sendEvent();
+		delete localArbEvent;
 		return;
 	}
 
@@ -120,13 +123,13 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 		if(fifoQueue.size() <= maxBusTransactions){
 			sendEvent();
 		}
-	}
-	else if(arbPolicy == ArbPolicy::RR){
+	} else if(arbPolicy == ArbPolicy::RR){
 		rrList.push_back(*localArbEvent);
 		if(rrList.size() <= maxBusTransactions){
 			sendEvent();
 		}
 	}
+	delete localArbEvent;
 }
 
 void XTSimArbiter::sendEvent(){

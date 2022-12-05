@@ -94,10 +94,10 @@ void cache::handleProcessorOp(SST::Event *ev)
         timestamp++;
         handleProcessorEvent(event);
         // Receiver has the responsiblity for deleting events
-        // delete event;
     } else {
         out->fatal(CALL_INFO, -1, "Error! Bad Event Type received by %s!\n", getName().c_str());
     }
+    delete ev;
 }
 
 void cache::handleProcessorEvent(CacheEvent* event) {
@@ -127,8 +127,8 @@ void cache::handleProcessorEvent(CacheEvent* event) {
 
 void cache::handleOutRequest(CacheEvent *event) {
     for (size_t i = 0; i < outRequest.size(); i++) {
-        if (event->event_type == outRequest[i]->event->event_type && event->pid == outRequest[i]->event->pid &&
-            event->addr == outRequest[i]->event->addr) {
+        if (event->event_type == outRequest[i].event.event_type && event->pid == outRequest[i].event.pid &&
+            event->addr == outRequest[i].event.addr) {
             
             // Evict the line here itself
             nevictions->addData(1);
@@ -143,8 +143,9 @@ void cache::handleOutRequest(CacheEvent *event) {
             line.timestamp = timestamp;
 
             // Send back all aliased events back to CPU
-            for (size_t j = 0; j < outRequest[i]->alias.size(); j++) {
-                cpulink->send(outRequest[i]->alias[j]);
+            for (size_t j = 0; j < outRequest[i].alias.size(); j++) {
+                CacheEvent *newCpuEvent = new CacheEvent(outRequest[i].alias[j]);
+                cpulink->send(newCpuEvent);
             }
             outRequest.erase(outRequest.begin() + i, outRequest.begin()+ i + 1);
             break;
@@ -165,7 +166,7 @@ void cache::handleBusOp(SST::Event *ev) {
         handleBusEvent(event);
     }
     printf("Cache responded event from bus id: %d pid: %d addr: %lx type: %d\n", cacheId, event->pid, event->addr, event->event_type);
-    // delete ev;
+    delete ev;
 }
 
 void cache::handleBusEvent(CacheEvent *event) {
@@ -223,12 +224,12 @@ void cache::handleArbOp(SST::Event *ev) {
     // A message from Arbiter indicates we have control of the interconnect
     // Forward the coherency request on interconnect
     printf("Cache received arb event %lu %d\n", cacheId, requestQueue.size());
-    CacheEvent *eventToBus = requestQueue[0];
+    CacheEvent *eventToBus = new CacheEvent(requestQueue[0]);
     requestQueue.erase(requestQueue.begin(), requestQueue.begin() + 1);
     printf("Cache send bus event %lu %d %lx %d\n", cacheId, requestQueue.size(), eventToBus->addr, eventToBus->event_type);
     buslink->send(eventToBus);
     printf("Cache sent bus event %lu %d %lx %d\n", cacheId, requestQueue.size(), eventToBus->addr, eventToBus->event_type);
-    // delete ev;
+    delete ev;
 }
 
 /**
@@ -322,17 +323,19 @@ void cache::handleReadMissMsi(CacheEvent* event) {
     printf("Check for alias %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
     // Build the arbiter event and request for bus
     for (int i = outRequest.size() - 1; i >= 0; i--) {
-        if (outRequest[i]->event->cacheLineIdx == nextBusEvent->cacheLineIdx) {
-            outRequest[i]->alias.push_back(nextBusEvent);
+        if (outRequest[i].event.cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            outRequest[i].alias.push_back(*nextBusEvent);
             return;
         }
     }
     printf("Add to out request %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
     OutRequest_t *outreq = new OutRequest_t;
-    outreq->event = nextBusEvent;
-    outRequest.push_back(outreq);
-    requestQueue.push_back(nextBusEvent);
+    outreq->event = *nextBusEvent;
+    outRequest.push_back(*outreq);
+    requestQueue.push_back(*nextBusEvent);
     acquireBus(nextBusEvent);
+    delete outreq;
+    delete nextBusEvent;
     printf("Acquire bus request sent %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
 }
 
@@ -353,8 +356,9 @@ void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t* line) {
         line->timestamp = timestamp;
 
         // Build the arbiter event and request for bus
-        requestQueue.push_back(nextBusEvent);
-        acquireBus(event);
+        requestQueue.push_back(*nextBusEvent);
+        acquireBus(nextBusEvent);
+        delete nextBusEvent;
     } else if (line->state == CacheState_t::I) {
         // This state is not possible in a read hit
         out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
@@ -375,9 +379,9 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
 
     // Build the arbiter event and request for bus
     for (int i = outRequest.size() - 1; i >= 0; i--) {
-        if (outRequest[i]->event->cacheLineIdx == nextBusEvent->cacheLineIdx) {
-            if (outRequest[i]->event->event_type == EVENT_TYPE::BUS_RDX) {
-                outRequest[i]->alias.push_back(nextBusEvent);
+        if (outRequest[i].event.cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            if (outRequest[i].event.event_type == EVENT_TYPE::BUS_RDX) {
+                outRequest[i].alias.push_back(*nextBusEvent);
                 return;
             } else {
                 break;
@@ -385,10 +389,12 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
         }
     }
     OutRequest_t *outreq = new OutRequest_t;
-    outreq->event = nextBusEvent;
-    outRequest.push_back(outreq);
-    requestQueue.push_back(nextBusEvent);
+    outreq->event = *nextBusEvent;
+    outRequest.push_back(*outreq);
+    requestQueue.push_back(*nextBusEvent);
     acquireBus(nextBusEvent);
+    delete nextBusEvent;
+    delete outreq;
 }
 
 /**

@@ -72,7 +72,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
     if (processorNum == 1) {
 		reqTraffic ++;
         sendEvent(cacheEvent->pid, cacheEvent);
-        // delete ev;
+        delete ev;
         return;
     }
 
@@ -95,7 +95,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
                     if (respEvent.event_type != EVENT_TYPE::NOT_SHARED) {
                         sendEvent(getPid(tid), &reqEvent);
 						transactionsMap.erase(tid);
-                        // delete ev;
+                        delete ev;
 						return;
                     }
                 }
@@ -107,7 +107,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
             }
         }
     }
-    // delete ev;
+    delete ev;
     // printf("reaching the end of bus handleEvent. addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
 }
 
@@ -118,7 +118,7 @@ void XTSimBus::handleMemEvent(SST::Event *ev) {
     CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
     // printf("bus heard back from memory with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
     sendEvent(cacheEvent->pid, cacheEvent);
-    // delete ev;
+    delete ev;
 }
 
 void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {

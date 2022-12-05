@@ -59,8 +59,8 @@ enum class ReplacementPolicy_t {
 };
 
 struct OutRequest_t {
-    CacheEvent *event;
-    std::vector<CacheEvent*> alias;
+    CacheEvent event;
+    std::vector<CacheEvent> alias;
 };
 
 typedef struct CacheLine_t {
@@ -185,8 +185,8 @@ private:
     size_t timestamp;
     bool blocked;
     std::vector<std::vector<CacheLine_t>> cacheLines;
-    std::vector<CacheEvent *> requestQueue;
-    std::vector<OutRequest_t *> outRequest;
+    std::vector<CacheEvent> requestQueue;
+    std::vector<OutRequest_t> outRequest;
     ReplacementPolicy_t rpolicy;
     CoherencyProtocol_t cprotocol;
 

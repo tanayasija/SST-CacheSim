@@ -102,6 +102,7 @@ void XTSimGenerator::readFromTrace() {
 void XTSimGenerator::handleEvent(SST::Event* ev){
 	receiveCount++;
 	CacheEvent* cacheEvent = dynamic_cast<CacheEvent*>(ev);
+	delete ev;
     if (receiveCount == eventList.size()) {
 		stat_inst_cnt->addData(offset);
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
