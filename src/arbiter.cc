@@ -90,13 +90,13 @@ void XTSimArbiter::getNext(){
 
 void XTSimArbiter::handleEvent(SST::Event* ev){
 	ArbEvent* arbEvent = dynamic_cast<ArbEvent*>(ev);
-	printf("arbiter received event with type: %d from pid:%d\n", arbEvent->event_type, arbEvent->pid);
+	// printf("arbiter received event with type: %d from pid:%d\n", arbEvent->event_type, arbEvent->pid);
 
 	ArbEvent *localArbEvent = new ArbEvent(arbEvent->event_type, arbEvent->pid);
 	delete arbEvent;
 	// if receiving a release event
 	if(localArbEvent->event_type == ARB_EVENT_TYPE::RL){
-		printf("RL\n");
+		// printf("RL\n");
 		if(arbPolicy == ArbPolicy::FIFO){
 			fifoQueue.pop();
 			if(fifoQueue.empty()) {
@@ -118,7 +118,7 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 
 	// else if receiving an acquire event
 	if(arbPolicy == ArbPolicy::FIFO){
-		printf("AC\n");
+		// printf("AC\n");
 		fifoQueue.push(*localArbEvent);
 		if(fifoQueue.size() <= maxBusTransactions){
 			sendEvent();
@@ -133,15 +133,15 @@ void XTSimArbiter::handleEvent(SST::Event* ev){
 }
 
 void XTSimArbiter::sendEvent(){
-	printf("arb sendEvent\n");
+	// printf("arb sendEvent\n");
 	if(arbPolicy == ArbPolicy::FIFO){
 		ArbEvent *ev = new ArbEvent;
 		ev->pid = fifoQueue.front().pid;
 		ev->event_type = fifoQueue.front().event_type;
 		grantsNum[ev->pid] ++;
-		printf("pid: %d\n", ev->pid);
+		// printf("pid: %d\n", ev->pid);
 		links[ev->pid]->send(ev);
-		printf("[arbiter]: granted access to %d\n", ev->pid);
+		// printf("[arbiter]: granted access to %d\n", ev->pid);
 	}
 	else{
 		ArbEvent *ev = new ArbEvent;
@@ -149,7 +149,7 @@ void XTSimArbiter::sendEvent(){
 		ev->event_type = acIter->event_type;
 		grantsNum[ev->pid] ++;
 		links[ev->pid]->send(ev);
-		printf("[arbiter]: granted access to %d\n", ev->pid);
+		// printf("[arbiter]: granted access to %d\n", ev->pid);
 	}
 }
 
@@ -162,5 +162,5 @@ XTSimArbiter::~XTSimArbiter()
 	string content;
 	for(auto& num : grantsNum)
 		content += std::to_string(num) + " ";
-	printf("[arbiter-stat]: final granting statistics:\n %s\n", content.c_str());
+	// printf("[arbiter-stat]: final granting statistics:\n %s\n", content.c_str());
 }
