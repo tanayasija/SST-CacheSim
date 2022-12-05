@@ -70,7 +70,7 @@ XTSimGenerator::XTSimGenerator(ComponentId_t id, Params &params) : Component(id)
 }
 
 void XTSimGenerator::readFromTrace() {
-	printf("[readFromTrace]\n");
+	// printf("[readFromTrace]\n");
     string line;
 	string leading = "threadId: " + std::to_string(generatorID + 1);
 	std::ifstream infile(traceFilePath);
@@ -106,7 +106,7 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
     if (receiveCount == eventList.size()) {
 		stat_inst_cnt->addData(offset);
         // Tell SST that it's OK to end the simulation (once all primary components agree, simulation will end)
-		printf("Generator %d exiting\n", generatorID);
+		// printf("Generator %d exiting\n", generatorID);
         primaryComponentOKToEndSim(); 
 		return;
     }
@@ -114,19 +114,19 @@ void XTSimGenerator::handleEvent(SST::Event* ev){
     size_t nstime = getCurrentSimTimeNano();
 	size_t ustime = getCurrentSimTimeMicro();
 	size_t mstime = getCurrentSimTimeMilli();
-	printf("now sending new event proc %lu at time %lu:%lu:%lu\n", generatorID, mstime, ustime,nstime);
+	// printf("now sending new event proc %lu at time %lu:%lu:%lu\n", generatorID, mstime, ustime,nstime);
 	sendEvent();
 }
 
 void XTSimGenerator::sendEvent(){
-	printf("ready to send event. offset:%zu\n", offset);
+	// printf("ready to send event. offset:%zu\n", offset);
 	CacheEvent* ev = new CacheEvent;
-    printf("Addr %zx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
+    // printf("Addr %zx Type %d\n", eventList[offset].addr, eventList[offset].event_type);
 	ev->addr = eventList[offset].addr;
 	ev->event_type = eventList[offset].event_type;
 	ev->pid = eventList[offset].pid;
 	ev->transactionId = eventList[offset].transactionId;
-	printf("sending %lu proc %zu\n", offset, generatorID);
+	// printf("sending %lu proc %zu\n", offset, generatorID);
 	link->send(ev);
 	offset++;
 }
