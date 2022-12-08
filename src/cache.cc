@@ -73,7 +73,7 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     ninvalidations = registerStatistic<uint64_t>("invalidations");
 
     printf("Cache %d initialized with parameters blockSize: %d cacheSize: %d associativity: %d rpolicy: %d cprotocol: %d\n", 
-    cacheId, blockSize, cacheSize, associativity, rpolicy, cprotocol, );
+    cacheId, blockSize, cacheSize, associativity, rpolicy, cprotocol);
 }
 
 /*
@@ -146,7 +146,6 @@ void cache::handleOutRequest(CacheEvent *event) {
             line.timestamp = timestamp;
             line.valid = true;
             line.address = event->addr;
-
 
             // Send back all aliased events back to CPU
             for (size_t j = 0; j < outRequest[i].alias.size(); j++) {
