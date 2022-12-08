@@ -72,8 +72,8 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     nevictions = registerStatistic<uint64_t>("evictions");
     ninvalidations = registerStatistic<uint64_t>("invalidations");
 
-    printf("Cache %d initialized with parameters blockSize: %d cacheSize: %d sets: %d nsbits: %d nbbits: %d \
-    associativity: %d rpolicy: %d cprotocol: %d\n",  cacheId, blockSize, cacheSize, nsets, nsbits, nbbits, 
+    printf("Cache %lu initialized with parameters blockSize: %lu cacheSize: %lu sets: %lu nsbits: %lu nbbits: %lu \
+    associativity: %lu rpolicy: %d cprotocol: %d\n",  cacheId, blockSize, cacheSize, nsets, nsbits, nbbits, 
     associativity, rpolicy, cprotocol);
 }
 
@@ -86,7 +86,7 @@ cache::~cache()
     float absmiss = (float) nmisses->getCollectionCount();
     float hitrate = abshit / (abshit + absmiss) * 100.f;
     float missrate = absmiss / (absmiss + abshit) * 100.f;
-    printf("[cache-stat]: cache%d hit rate: %f miss rate: %f nhits: %d nmisses: %d nevictions: %d ninvalidations: %d\n", 
+    printf("[cache-stat]: cache%d hit rate: %f miss rate: %f nhits: %llu nmisses: %llu nevictions: %llu ninvalidations: %llu\n", 
     cacheId, hitrate, missrate, nhits->getCollectionCount(), nmisses->getCollectionCount(), nevictions->getCollectionCount(), ninvalidations->getCollectionCount());
     delete out;
 }
