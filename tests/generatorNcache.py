@@ -5,7 +5,7 @@ import os
 print("current directory:" + os.getcwd())
 
 num_processors = 4
-trace_name = "trace_"
+trace_name = "padding_hit_"
 
 ### Create the components
 
@@ -56,9 +56,10 @@ for i in range(num_processors):
 
         cacheParams = {
                 "blockSize" : 64,    # Required parameter, error if not provided
-                "cacheSize" : 16384,       # Optional parameter, defaults to 16 if not provided,
-                "associativity" : 4,
-                "cacheId" : i
+                "cacheSize" : 65536,       # Optional parameter, defaults to 16 if not provided,
+                "associativity" : 16,
+                "cacheId" : i,
+                "replacementPolicy": 1
         }
         cache.addParams(cacheParams)
 

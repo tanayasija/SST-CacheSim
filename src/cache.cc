@@ -131,7 +131,7 @@ void cache::handleOutRequest(CacheEvent *event) {
             event->addr == outRequest[i].event.addr) {
             
             // Evict the line here itself
-            nevictions->addData(1);
+            
             CacheLine_t& line = evictLine(event);
             if (event->event_type == EVENT_TYPE::BUS_RD) {
                 line.state = CacheState_t::S;
@@ -440,6 +440,12 @@ void cache::handleWriteMissMesi(CacheEvent* event) {
 CacheLine_t& cache::evictLineRr(CacheEvent* event) {
     size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
+	for (size_t i = 0; i < associativity; i++) {
+        if (cacheSet[i].valid == false) {
+            return cacheSet[i];
+        }
+    }
+	nevictions->addData(1);
     size_t lineIdx = rrCounter[idx];
     lineIdx = (lineIdx + 1) % associativity;
     return cacheSet[lineIdx];
@@ -456,6 +462,7 @@ CacheLine_t& cache::evictLineLru(CacheEvent* event) {
 
     size_t lineIdx = 0;
     size_t minTimestamp = timestamp + 1;
+	nevictions->addData(1);
     for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == true and cacheSet[i].timestamp < minTimestamp) {
             lineIdx = i;
@@ -473,7 +480,7 @@ CacheLine_t& cache::evictLineMru(CacheEvent* event) {
             return cacheSet[i];
         }
     }
-
+	nevictions->addData(1);
     size_t lineIdx = 0;
     size_t maxTimestamp = 0;
     for (size_t i = 0; i < associativity; i++) {
