@@ -48,7 +48,16 @@ XTSimMemory::XTSimMemory(ComponentId_t id, Params &params) : Component(id) {
 
 // the end of instruction's lifecycle
 void XTSimMemory::handleEvent(SST::Event* ev){
-	link->send(ev);
+    // printf("Memory received event ev %p\n", ev);
+    CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
+    // printf("Memory received %d %lx\n", cacheEvent->event_type, cacheEvent->addr);
+    if (cacheEvent == NULL) {
+        printf("Cast failed\n");
+    }
+    CacheEvent *bcacheEvent = new CacheEvent(cacheEvent->event_type, cacheEvent->addr, cacheEvent->pid, 
+    cacheEvent->transactionId, cacheEvent->cacheLineIdx);
+	link->send(bcacheEvent);
+    // delete cacheEvent;
 }
 
 /*

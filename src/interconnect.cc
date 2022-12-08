@@ -85,25 +85,29 @@ void XTSimBus::handleEvent(SST::Event *ev) {
 		respTraffic ++;
         transactionsMap[tid].push_back(*cacheEvent);
         if (transactionsMap[tid].size() == processorNum) {
-            auto reqEvent = transactionsMap[tid][0]; // Entry zero is the request
-            if (reqEvent.event_type == EVENT_TYPE::BUS_UPGR) {
-                sendEvent(getPid(tid), &reqEvent);
+            CacheEvent* reqEvent = new CacheEvent(transactionsMap[tid][0].event_type, transactionsMap[tid][0].addr, transactionsMap[tid][0].pid, 
+    transactionsMap[tid][0].transactionId, transactionsMap[tid][0].cacheLineIdx); // Entry zero is the request
+            if (reqEvent->event_type == EVENT_TYPE::BUS_UPGR) {
+                sendEvent(getPid(tid), reqEvent);
 				transactionsMap.erase(tid);
             } else { // for BUS_RD and BUS_RDX, check if there is non-empty response from other caches
                 for (int i = 1; i < processorNum; ++i) {
                     auto respEvent = transactionsMap[tid][i];
-                    if (respEvent.event_type != EVENT_TYPE::NOT_SHARED) {
-                        sendEvent(getPid(tid), &reqEvent);
+                    if (respEvent.event_type != EVENT_TYPE::EMPTY) {
+                        sendEvent(getPid(tid), reqEvent);
 						transactionsMap.erase(tid);
                         delete cacheEvent;
 						return;
                     }
                 }
 				// otherwise, read from memory
-				memLink->send(&reqEvent);
+                // printf("1 %p\n", reqEvent);
+				memLink->send(reqEvent);
+                // printf("2\n");
 				totalTraffic ++;
 				memoryTraffic ++;
-				transactionsMap.erase(tid);
+				// transactionsMap.erase(tid);
+                // printf("3\n");
             }
         }
     }
@@ -118,6 +122,8 @@ void XTSimBus::handleMemEvent(SST::Event *ev) {
     CacheEvent *cacheEvent = dynamic_cast<CacheEvent *>(ev);
     // printf("bus heard back from memory with addr: %zx from processor_%d\n", cacheEvent->addr, cacheEvent->pid);
     sendEvent(cacheEvent->pid, cacheEvent);
+    size_t tid = cacheEvent->transactionId;
+    transactionsMap.erase(tid);
     delete cacheEvent;
 }
 
@@ -132,7 +138,7 @@ void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {
         if (i == pidToFilter)
             continue;
 		totalTraffic ++;
-		reqTraffic ++;
+		// reqTraffic ++;
         // printf("Broadcast event to cache %d %lx\n", i, ev->addr);
         links[i]->send(eventsToBcast[sent]);
         sent++;
@@ -143,7 +149,7 @@ void XTSimBus::broadcast(size_t pidToFilter, CacheEvent *ev) {
 void XTSimBus::sendEvent(pid_t pid, CacheEvent *ev) {
     // printf("Bus sent response of event: %lx to pid: %d\n", ev->addr, pid);
 	totalTraffic ++;
-	respTraffic ++;
+	// respTraffic ++;
     CacheEvent *bcacheEvent = new CacheEvent(ev->event_type, ev->addr, ev->pid, ev->transactionId, ev->cacheLineIdx);
     links[pid]->send(bcacheEvent);
 }
@@ -153,10 +159,10 @@ void XTSimBus::sendEvent(pid_t pid, CacheEvent *ev) {
  */
 XTSimBus::~XTSimBus() {
 	string content;
-	// printf("[interconnect-stat]: totalTraffic:%zu\n", totalTraffic);
-	// printf("[interconnect-stat]: reqTraffic:%zu\n", reqTraffic);
-	// printf("[interconnect-stat]: respTraffic:%zu\n", respTraffic);
-	// printf("[interconnect-stat]: memoryTraffic:%zu\n", memoryTraffic);
-	// printf("[interconnect-stat]: memory access time:%zu ns\n", memoryTraffic * memoryAccessTime);
+	printf("[interconnect-stat]: totalTraffic:%zu\n", totalTraffic);
+	printf("[interconnect-stat]: reqTraffic:%zu\n", reqTraffic);
+	printf("[interconnect-stat]: respTraffic:%zu\n", respTraffic);
+	printf("[interconnect-stat]: memoryTraffic:%zu\n", memoryTraffic);
+	printf("[interconnect-stat]: total memory access time:%zu ns\n", memoryTraffic * memoryAccessTime);
     delete out;
 }

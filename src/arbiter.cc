@@ -162,5 +162,5 @@ XTSimArbiter::~XTSimArbiter()
 	string content;
 	for(auto& num : grantsNum)
 		content += std::to_string(num) + " ";
-	// printf("[arbiter-stat]: final granting statistics:\n %s\n", content.c_str());
+	printf("[arbiter-stat]: final granting statistics:\n %s\n", content.c_str());
 }
