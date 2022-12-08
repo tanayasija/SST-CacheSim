@@ -36,6 +36,7 @@ public:
     pid_t pid;
 	size_t transactionId;
     size_t cacheLineIdx;
+    EVENT_TYPE rsp;
 
     // Events must provide a serialization function that serializes
     // all data members of the event
@@ -46,6 +47,7 @@ public:
 		ser & pid;
 		ser & transactionId;
         ser & cacheLineIdx;
+        ser & rsp;
     }
 
     // Register this event as serializable
