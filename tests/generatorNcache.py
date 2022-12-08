@@ -55,7 +55,7 @@ for i in range(num_processors):
         generator.addParams(generatorParams)
 
         cacheParams = {
-                "blockSize" : 64,    # Required parameter, error if not provided
+                "blockSize" : 8192,    # Required parameter, error if not provided
                 "cacheSize" : 65536,       # Optional parameter, defaults to 16 if not provided,
                 "associativity" : 8,
                 "cacheId" : i,
