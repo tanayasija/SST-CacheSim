@@ -85,7 +85,8 @@ cache::~cache()
     float abshit = (float) nhits->getCollectionCount();
     float absmiss = (float) nmisses->getCollectionCount();
     float hitrate = abshit / (abshit + absmiss) * 100.f;
-    printf("[cache-stat]: cache%d hit rate %f\n", cacheId, hitrate);
+    printf("[cache-stat]: cache%d hit rate: %f nhits: %d nmisses: %d nevictions: %d ninvalidations: %d\n", 
+    cacheId, hitrate, nhits->getCollectionCount(), nmisses->getCollectionCount(), nevictions->getCollectionCount(), ninvalidations->getCollectionCount());
     delete out;
 }
 
