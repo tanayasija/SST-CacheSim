@@ -82,6 +82,10 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
  */
 cache::~cache()
 {
+    float abshit = (float) nhits->getCollectionCount();
+    float absmiss = (float) nmisses->getCollectionCount();
+    float hitrate = abshit / (abshit + absmiss) * 100.f;
+    printf("[cache-stat]: cache%d hit rate %f\n", cacheId, hitrate);
     delete out;
 }
 
@@ -604,7 +608,12 @@ void cache::handleWriteMissMesi(CacheEvent* event) {
  */
 
 CacheLine_t& cache::evictLineRr(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
 	for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -618,7 +627,12 @@ CacheLine_t& cache::evictLineRr(CacheEvent* event) {
 }
 
 CacheLine_t& cache::evictLineLru(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -639,7 +653,12 @@ CacheLine_t& cache::evictLineLru(CacheEvent* event) {
 }
 
 CacheLine_t& cache::evictLineMru(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -665,10 +684,17 @@ CacheLine_t& cache::evictLineMru(CacheEvent* event) {
  */
 
 CacheLine_t* cache::lookupCache(size_t addr) {
-    size_t idx =  (addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
-        if (cacheSet[i].valid == true && cacheSet[i].address == addr) {
+        size_t tag = (cacheSet[i].address >> nbbits);
+        size_t addrTag = addr >> nbbits;
+        if (cacheSet[i].valid == true && tag == addrTag) {
             return &cacheSet[i];
         }
     }
