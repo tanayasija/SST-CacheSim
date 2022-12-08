@@ -71,6 +71,9 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     nmisses = registerStatistic<uint64_t>("misses");
     nevictions = registerStatistic<uint64_t>("evictions");
     ninvalidations = registerStatistic<uint64_t>("invalidations");
+
+    printf("Cache %d initialized with parameters blockSize: %d cacheSize: %d associativity: %d rpolicy: %d cprotocol: %d\n", 
+    cacheId, blockSize, cacheSize, associativity, rpolicy, cprotocol, );
 }
 
 /*
