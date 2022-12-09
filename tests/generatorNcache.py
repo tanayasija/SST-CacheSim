@@ -5,7 +5,7 @@ import os
 print("current directory:" + os.getcwd())
 
 num_processors = 4
-trace_name = "ocean3_"
+trace_name = "random_"
 
 ### Create the components
 
