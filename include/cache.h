@@ -138,6 +138,8 @@ private:
     void handleBusEvent(CacheEvent *ev);
     void handleArbOp(SST::Event *ev);
     void handleOutRequest(CacheEvent *event);
+    void handleOutRequestMesi(CacheEvent *event);
+    void handleOutRequestMsi(CacheEvent *event);
 
     // Basic cache wrapper functions
     void handleReadHit(CacheEvent* ev, CacheLine_t* line);

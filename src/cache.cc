@@ -72,8 +72,9 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
     nevictions = registerStatistic<uint64_t>("evictions");
     ninvalidations = registerStatistic<uint64_t>("invalidations");
 
-    printf("Cache %d initialized with parameters blockSize: %d cacheSize: %d associativity: %d rpolicy: %d cprotocol: %d\n", 
-    cacheId, blockSize, cacheSize, associativity, rpolicy, cprotocol);
+    printf("Cache %lu initialized with parameters blockSize: %lu cacheSize: %lu sets: %lu nsbits: %lu nbbits: %lu \
+    associativity: %lu rpolicy: %d cprotocol: %d\n",  cacheId, blockSize, cacheSize, nsets, nsbits, nbbits, 
+    associativity, rpolicy, cprotocol);
 }
 
 /*
@@ -81,6 +82,12 @@ cache::cache(ComponentId_t id, Params& params) : Component(id) {
  */
 cache::~cache()
 {
+    float abshit = (float) nhits->getCollectionCount();
+    float absmiss = (float) nmisses->getCollectionCount();
+    float hitrate = abshit / (abshit + absmiss) * 100.f;
+    float missrate = absmiss / (absmiss + abshit) * 100.f;
+    printf("[cache-stat]: cache%d hit rate: %f miss rate: %f nhits: %llu nmisses: %llu nevictions: %llu ninvalidations: %llu\n", 
+    cacheId, hitrate, missrate, nhits->getCollectionCount(), nmisses->getCollectionCount(), nevictions->getCollectionCount(), ninvalidations->getCollectionCount());
     delete out;
 }
 
@@ -128,7 +135,42 @@ void cache::handleProcessorEvent(CacheEvent* event) {
     }
 }
 
-void cache::handleOutRequest(CacheEvent *event) {
+void cache::handleOutRequestMesi(CacheEvent *event) {
+    for (size_t i = 0; i < outRequest.size(); i++) {
+        if (event->event_type == outRequest[i].event.event_type && event->pid == outRequest[i].event.pid &&
+            event->addr == outRequest[i].event.addr) {
+            
+            // Evict the line here itself
+            
+            CacheLine_t& line = evictLine(event);
+            if (event->event_type == EVENT_TYPE::BUS_RD) {
+                if (event->rsp == EVENT_TYPE::SHARED) {
+                    line.state = CacheState_t::S;
+                    line.dirty = false;
+                } else {
+                    line.state = CacheState_t::E;
+                    line.dirty = false;
+                }
+            } else {
+                line.state = CacheState_t::M;
+                line.dirty = true;
+            }
+            line.timestamp = timestamp;
+            line.valid = true;
+            line.address = event->addr;
+
+            // Send back all aliased events back to CPU
+            for (size_t j = 0; j < outRequest[i].alias.size(); j++) {
+                CacheEvent *newCpuEvent = new CacheEvent(outRequest[i].alias[j]);
+                cpulink->send(newCpuEvent);
+            }
+            outRequest.erase(outRequest.begin() + i, outRequest.begin()+ i + 1);
+            break;
+        }
+    }
+}
+
+void cache::handleOutRequestMsi(CacheEvent *event) {
     for (size_t i = 0; i < outRequest.size(); i++) {
         if (event->event_type == outRequest[i].event.event_type && event->pid == outRequest[i].event.pid &&
             event->addr == outRequest[i].event.addr) {
@@ -158,6 +200,17 @@ void cache::handleOutRequest(CacheEvent *event) {
     }
 }
 
+void cache::handleOutRequest(CacheEvent *event) {
+    switch (cprotocol) {
+        case CoherencyProtocol_t::MESI:
+            handleOutRequestMesi(event);
+            break;
+        case CoherencyProtocol_t::MSI:
+            handleOutRequestMsi(event);
+            break;
+    }
+}
+
 void cache::handleBusOp(SST::Event *ev) {
     // printf("Cache received event from bus id %d\n", cacheId);
     CacheEvent *event = dynamic_cast<CacheEvent*>(ev);  
@@ -181,6 +234,9 @@ void cache::handleBusEvent(CacheEvent *event) {
         // printf("Bus event hit in cache %d %lx %d\n", cacheId, event->addr, event->event_type);
         switch (event->event_type) {
             case EVENT_TYPE::BUS_RD:
+                // Update state
+                line->state = CacheState_t::S;
+
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
@@ -190,7 +246,10 @@ void cache::handleBusEvent(CacheEvent *event) {
                 break;
             case EVENT_TYPE::BUS_RDX:
                 ninvalidations->addData(1);
+                // Update state
+                line->state = CacheState_t::I;
                 line->valid = false;
+
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
@@ -200,7 +259,10 @@ void cache::handleBusEvent(CacheEvent *event) {
                 break;
             case EVENT_TYPE::BUS_UPGR:
                 ninvalidations->addData(1);
+                // Update state
+                line->state = CacheState_t::I;
                 line->valid = false;    
+
                 busResponse = new CacheEvent;
                 busResponse->event_type = EVENT_TYPE::SHARED;
                 busResponse->addr = event->addr;
@@ -354,6 +416,8 @@ void cache::handleReadMissMsi(CacheEvent* event) {
 
 void cache::handleWriteHitMsi(CacheEvent* event, CacheLine_t* line) {
     if (line->state == CacheState_t::M) {
+        line->timestamp = timestamp;
+        line->dirty = true;
         CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
         cpulink->send(fevent); // Do nothing since line is in modified state
     } else if (line->state == CacheState_t::S) {
@@ -418,19 +482,125 @@ void cache::handleWriteMissMsi(CacheEvent* event) {
  */
 
 void cache::handleReadHitMesi(CacheEvent* event, CacheLine_t* line) {
+    if (line->state == CacheState_t::M) {
+        line->timestamp = timestamp; // Do nothing since line is in modified state
 
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
+        cpulink->send(fevent);
+    } else if (line->state == CacheState_t::S) {
+        line->timestamp = timestamp; // Do nothing since line is in shared state
+
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
+        cpulink->send(fevent);
+    } else if (line->state == CacheState_t::E) {
+        line->timestamp = timestamp; // Do nothing since line is in shared state
+
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
+        cpulink->send(fevent);
+    } else if (line->state == CacheState_t::I) {
+        // This state is not possible in a read hit
+        out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
+    } else {
+        out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
+    }
 }
 
 void cache::handleReadMissMesi(CacheEvent* event) {
+    // The cache line is assumed to be in implicit invalid state here
+    nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+    nextBusEvent->event_type = EVENT_TYPE::BUS_RD;
+    nextBusEvent->addr = event->addr;
+    nextBusEvent->pid = event->pid;
+    nextBusEvent->transactionId = event->transactionId;
+    nextBusEvent->cacheLineIdx = event->addr / blockSize;
 
+    // Evict the line later when the response is received
+
+    // printf("Check for alias %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
+    // Build the arbiter event and request for bus
+    for (int i = outRequest.size() - 1; i >= 0; i--) {
+        if (outRequest[i].event.cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            outRequest[i].alias.push_back(*nextBusEvent);
+            return;
+        }
+    }
+    // printf("Add to out request %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
+    OutRequest_t *outreq = new OutRequest_t;
+    outreq->event = *nextBusEvent;
+    outRequest.push_back(*outreq);
+    requestQueue.push_back(*nextBusEvent);
+    acquireBus(nextBusEvent);
+    delete outreq;
+    delete nextBusEvent;
+    // printf("Acquire bus request sent %lx %lu %d %d\n", event->addr, event->addr / blockSize, cacheId, event->event_type);
 }
 
 void cache::handleWriteHitMesi(CacheEvent* event, CacheLine_t* line) {
+    if (line->state == CacheState_t::M) {
+        line->dirty = true;
+        line->timestamp = timestamp;
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
+        cpulink->send(fevent); // Do nothing since line is in modified state
+    } else if (line->state == CacheState_t::E) {
+        line->state = CacheState_t::M;
+        line->dirty = true;
+        line->timestamp = timestamp;
 
+        CacheEvent *fevent = new CacheEvent(event->event_type, event->addr, event->pid, event->transactionId, event->cacheLineIdx);
+        cpulink->send(fevent); // Do nothing since line is in modified state
+    } else if (line->state == CacheState_t::S) {
+        nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+        nextBusEvent->event_type = EVENT_TYPE::BUS_UPGR;
+        nextBusEvent->addr = event->addr;
+        nextBusEvent->pid = event->pid;
+        nextBusEvent->transactionId = event->transactionId;
+        nextBusEvent->cacheLineIdx = event->addr / blockSize;
+
+        // Update cache line attributes
+        line->state = CacheState_t::M;
+        line->dirty = true;
+        line->timestamp = timestamp;
+
+        // Build the arbiter event and request for bus
+        requestQueue.push_back(*nextBusEvent);
+        acquireBus(nextBusEvent);
+        delete nextBusEvent;
+    } else if (line->state == CacheState_t::I) {
+        // This state is not possible in a read hit
+        out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
+    } else {
+        out->fatal(CALL_INFO, -1, "Error! Invalid cache state %s!\n", getName().c_str()); 
+    }
 }
 
 void cache::handleWriteMissMesi(CacheEvent* event) {
+    nextBusEvent = new CacheEvent; // Have to issue a BusUpgr
+    nextBusEvent->event_type = EVENT_TYPE::BUS_RDX;
+    nextBusEvent->addr = event->addr;
+    nextBusEvent->pid = event->pid;
+    nextBusEvent->transactionId = event->transactionId;
+    nextBusEvent->cacheLineIdx = event->addr / blockSize;
 
+    // Evict the line later after the response is received
+
+    // Build the arbiter event and request for bus
+    for (int i = outRequest.size() - 1; i >= 0; i--) {
+        if (outRequest[i].event.cacheLineIdx == nextBusEvent->cacheLineIdx) {
+            if (outRequest[i].event.event_type == EVENT_TYPE::BUS_RDX) {
+                outRequest[i].alias.push_back(*nextBusEvent);
+                return;
+            } else {
+                break;
+            }
+        }
+    }
+    OutRequest_t *outreq = new OutRequest_t;
+    outreq->event = *nextBusEvent;
+    outRequest.push_back(*outreq);
+    requestQueue.push_back(*nextBusEvent);
+    acquireBus(nextBusEvent);
+    delete nextBusEvent;
+    delete outreq;
 }
 
 /**
@@ -440,7 +610,12 @@ void cache::handleWriteMissMesi(CacheEvent* event) {
  */
 
 CacheLine_t& cache::evictLineRr(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
 	for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -454,7 +629,12 @@ CacheLine_t& cache::evictLineRr(CacheEvent* event) {
 }
 
 CacheLine_t& cache::evictLineLru(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -475,7 +655,12 @@ CacheLine_t& cache::evictLineLru(CacheEvent* event) {
 }
 
 CacheLine_t& cache::evictLineMru(CacheEvent* event) {
-    size_t idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (event->addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
         if (cacheSet[i].valid == false) {
@@ -501,10 +686,17 @@ CacheLine_t& cache::evictLineMru(CacheEvent* event) {
  */
 
 CacheLine_t* cache::lookupCache(size_t addr) {
-    size_t idx =  (addr >> nbbits) & ( 1 << (nsbits - 1));
+    size_t idx = 0;
+    if (nsbits >= 1) {   
+        idx =  (addr >> nbbits) & ( 1 << (nsbits - 1));
+    } else {
+        idx = 0;
+    }
     std::vector<CacheLine_t>& cacheSet = cacheLines[idx];
     for (size_t i = 0; i < associativity; i++) {
-        if (cacheSet[i].valid == true && cacheSet[i].address == addr) {
+        size_t tag = (cacheSet[i].address >> nbbits);
+        size_t addrTag = addr >> nbbits;
+        if (cacheSet[i].valid == true && tag == addrTag) {
             return &cacheSet[i];
         }
     }
@@ -557,11 +749,11 @@ size_t cache::logFunc(size_t num) {
 
 void cache::acquireBus(CacheEvent* event) {
     // Build the arbiter event and request for bus
-    // // printf("Building arb event. pid: %d\n", event->pid);
+    // printf("Building arb event. pid: %d\n", event->pid);
     nextArbEvent = new ArbEvent(ARB_EVENT_TYPE::AC, event->pid);
-    // // printf("Sending arb event\n");
+    // printf("Sending arb event\n");
     arblink->send(nextArbEvent);
-    // // printf("Sent arb event\n");
+    // printf("Sent arb event\n");
 }
 
 void cache::releaseBus(CacheEvent* event) {

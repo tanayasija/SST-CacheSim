@@ -94,6 +94,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
                 for (int i = 1; i < processorNum; ++i) {
                     auto respEvent = transactionsMap[tid][i];
                     if (respEvent.event_type != EVENT_TYPE::EMPTY) {
+                        reqEvent->rsp = EVENT_TYPE::SHARED;
                         sendEvent(getPid(tid), reqEvent);
 						transactionsMap.erase(tid);
                         delete cacheEvent;
@@ -102,6 +103,7 @@ void XTSimBus::handleEvent(SST::Event *ev) {
                 }
 				// otherwise, read from memory
                 // printf("1 %p\n", reqEvent);
+                reqEvent->rsp = EVENT_TYPE::NOT_SHARED;
 				memLink->send(reqEvent);
                 // printf("2\n");
 				totalTraffic ++;
